@@ -7,14 +7,12 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -80,32 +78,51 @@ private fun MiniAnimatorScreen() {
             .padding(8.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Button(
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    if (frames.size > 1) {
+                        isPlaying = !isPlaying
+                    }
+                }
+            ) {
+                Text(if (isPlaying) "Stop" else "▶ Play")
+            }
+
+            Button(
+                modifier = Modifier.weight(1f),
                 onClick = {
                     if (!isPlaying && currentFrame > 0) {
                         currentFrame--
                     }
                 }
             ) {
-                Text("Indietro")
+                Text("◀ Indietro")
             }
 
             Button(
+                modifier = Modifier.weight(1f),
                 onClick = {
                     if (!isPlaying && currentFrame < frames.lastIndex) {
                         currentFrame++
                     }
                 }
             ) {
-                Text("Avanti")
+                Text("Avanti ▶")
             }
+        }
 
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             Button(
+                modifier = Modifier.weight(1f),
                 onClick = {
                     if (!isPlaying) {
                         frames.add(mutableListOf())
@@ -113,24 +130,29 @@ private fun MiniAnimatorScreen() {
                     }
                 }
             ) {
-                Text("Nuovo")
+                Text("+ Nuovo")
             }
 
             Button(
+                modifier = Modifier.weight(1f),
                 onClick = {
                     if (!isPlaying) {
-                        frames.add(
-                            currentFrame + 1,
-                            frames[currentFrame].toMutableList()
-                        )
-                        currentFrame++
+                        val copy = frames[currentFrame]
+                            .map { stroke ->
+                                DrawStroke(stroke.points.toList())
+                            }
+                            .toMutableList()
+
+                        frames.add(currentFrame + 1, copy)
+                        currentFrame += 1
                     }
                 }
             ) {
-                Text("Duplica")
+                Text("⧉ Duplica")
             }
 
             Button(
+                modifier = Modifier.weight(1f),
                 onClick = {
                     if (!isPlaying) {
                         frames[currentFrame] = mutableListOf()
@@ -139,16 +161,6 @@ private fun MiniAnimatorScreen() {
                 }
             ) {
                 Text("Pulisci")
-            }
-
-            Button(
-                onClick = {
-                    if (frames.size > 1) {
-                        isPlaying = !isPlaying
-                    }
-                }
-            ) {
-                Text(if (isPlaying) "Stop" else "Play")
             }
         }
 

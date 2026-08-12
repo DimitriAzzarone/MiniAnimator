@@ -35,7 +35,9 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
 private data class DrawStroke(
-    val points: List<Offset>
+    val points: List<Offset>,
+    val color: Color = Color.Black,
+    val width: Float = 8f
 )
 
 class MainActivity : ComponentActivity() {
@@ -63,6 +65,8 @@ private fun MiniAnimatorScreen() {
     var currentFrame by remember { mutableStateOf(0) }
     var activePoints by remember { mutableStateOf<List<Offset>>(emptyList()) }
     var isPlaying by remember { mutableStateOf(false) }
+    var isEraser by remember { mutableStateOf(false) }
+    var showNewAnimationDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(isPlaying, frames.size) {
         while (isPlaying && frames.size > 1) {
@@ -139,7 +143,7 @@ private fun MiniAnimatorScreen() {
                     if (!isPlaying) {
                         val copy = frames[currentFrame]
                             .map { stroke ->
-                                DrawStroke(stroke.points.toList())
+                                DrawStroke(points = stroke.points.toList(), color = stroke.color, width = stroke.width)
                             }
                             .toMutableList()
 
@@ -162,6 +166,86 @@ private fun MiniAnimatorScreen() {
             ) {
                 Text("Pulisci")
             }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Button(
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    if (!isPlaying) {
+                        isEraser = false
+                    }
+                }
+            ) {
+                Text(if (!isEraser) "Pennello ✓" else "Pennello")
+            }
+
+            Button(
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    if (!isPlaying) {
+                        isEraser = true
+                    }
+                }
+            ) {
+                Text(if (isEraser) "Gomma ✓" else "Gomma")
+            }
+        }
+
+        Button(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+            onClick = {
+                if (!isPlaying) {
+                    showNewAnimationDialog = true
+                }
+            }
+        ) {
+            Text("Nuova animazione")
+        }
+
+        if (showNewAnimationDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = {
+                    showNewAnimationDialog = false
+                },
+                title = {
+                    Text("Nuova animazione")
+                },
+                text = {
+                    Text("Vuoi cancellare tutti i fotogrammi e iniziare una nuova animazione?")
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            frames.clear()
+                            frames.add(mutableListOf())
+                            currentFrame = 0
+                            activePoints = emptyList()
+                            isPlaying = false
+                            isEraser = false
+                            showNewAnimationDialog = false
+                        }
+                    ) {
+                        Text("Nuova")
+                    }
+                },
+                dismissButton = {
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            showNewAnimationDialog = false
+                        }
+                    ) {
+                        Text("Annulla")
+                    }
+                }
+            )
         }
 
         Text(
@@ -188,7 +272,11 @@ private fun MiniAnimatorScreen() {
                             onDragEnd = {
                                 if (activePoints.size > 1) {
                                     frames[currentFrame] =
-                                        (frames[currentFrame] + DrawStroke(activePoints))
+                                        (frames[currentFrame] + DrawStroke(
+                                    points = activePoints,
+                                    color = if (isEraser) Color.White else Color.Black,
+                                    width = if (isEraser) 30f else 8f
+                                ))
                                             .toMutableList()
                                 }
                                 activePoints = emptyList()
@@ -200,21 +288,21 @@ private fun MiniAnimatorScreen() {
                     }
                 }
         ) {
-            fun drawStroke(points: List<Offset>) {
-                if (points.size < 2) return
+            fun drawStroke(stroke: DrawStroke) {
+                if (stroke.points.size < 2) return
 
                 val path = Path().apply {
-                    moveTo(points.first().x, points.first().y)
-                    points.drop(1).forEach { point ->
+                    moveTo(stroke.points.first().x, stroke.points.first().y)
+                    stroke.points.drop(1).forEach { point ->
                         lineTo(point.x, point.y)
                     }
                 }
 
                 drawPath(
                     path = path,
-                    color = Color.Black,
+                    color = stroke.color,
                     style = Stroke(
-                        width = 8f,
+                        width = stroke.width,
                         cap = StrokeCap.Round,
                         join = StrokeJoin.Round
                     )
@@ -222,10 +310,18 @@ private fun MiniAnimatorScreen() {
             }
 
             frames[currentFrame].forEach { stroke ->
-                drawStroke(stroke.points)
+                drawStroke(stroke)
             }
 
-            drawStroke(activePoints)
+            if (activePoints.size > 1) {
+                drawStroke(
+                    DrawStroke(
+                        points = activePoints,
+                        color = if (isEraser) Color.White else Color.Black,
+                        width = if (isEraser) 30f else 8f
+                    )
+                )
+            }
         }
     }
 }

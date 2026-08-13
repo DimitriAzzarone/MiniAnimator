@@ -30,6 +30,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
+import org.json.JSONArray
+import org.json.JSONObject
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -56,6 +59,9 @@ class MainActivity : ComponentActivity() {
 
 @androidx.compose.runtime.Composable
 private fun MiniAnimatorScreen() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var projectMessage by remember { mutableStateOf("") }
+
     val frames = remember {
         mutableStateListOf<MutableList<DrawStroke>>(
             mutableListOf()
@@ -67,6 +73,106 @@ private fun MiniAnimatorScreen() {
     var isPlaying by remember { mutableStateOf(false) }
     var isEraser by remember { mutableStateOf(false) }
     var showNewAnimationDialog by remember { mutableStateOf(false) }
+
+    fun saveProject() {
+        try {
+            val root = JSONObject()
+            val framesJson = JSONArray()
+
+            frames.forEach { frame ->
+                val frameJson = JSONArray()
+
+                frame.forEach { stroke ->
+                    val strokeJson = JSONObject()
+                    strokeJson.put("color", stroke.color.toArgb())
+                    strokeJson.put("width", stroke.width.toDouble())
+
+                    val pointsJson = JSONArray()
+                    stroke.points.forEach { point ->
+                        val pointJson = JSONArray()
+                        pointJson.put(point.x.toDouble())
+                        pointJson.put(point.y.toDouble())
+                        pointsJson.put(pointJson)
+                    }
+
+                    strokeJson.put("points", pointsJson)
+                    frameJson.put(strokeJson)
+                }
+
+                framesJson.put(frameJson)
+            }
+
+            root.put("frames", framesJson)
+
+            context.openFileOutput(
+                "minianimator_project.json",
+                android.content.Context.MODE_PRIVATE
+            ).use { output ->
+                output.write(root.toString().toByteArray())
+            }
+
+            projectMessage = "Progetto salvato"
+        } catch (e: Exception) {
+            projectMessage = "Errore salvataggio"
+        }
+    }
+
+    fun loadProject() {
+        try {
+            val text = context.openFileInput("minianimator_project.json")
+                .use { input -> input.readBytes().toString(Charsets.UTF_8) }
+
+            val root = JSONObject(text)
+            val framesJson = root.getJSONArray("frames")
+            val loadedFrames = mutableListOf<MutableList<DrawStroke>>()
+
+            for (frameIndex in 0 until framesJson.length()) {
+                val frameJson = framesJson.getJSONArray(frameIndex)
+                val loadedFrame = mutableListOf<DrawStroke>()
+
+                for (strokeIndex in 0 until frameJson.length()) {
+                    val strokeJson = frameJson.getJSONObject(strokeIndex)
+                    val pointsJson = strokeJson.getJSONArray("points")
+                    val points = mutableListOf<Offset>()
+
+                    for (pointIndex in 0 until pointsJson.length()) {
+                        val pointJson = pointsJson.getJSONArray(pointIndex)
+                        points.add(
+                            Offset(
+                                pointJson.getDouble(0).toFloat(),
+                                pointJson.getDouble(1).toFloat()
+                            )
+                        )
+                    }
+
+                    loadedFrame.add(
+                        DrawStroke(
+                            points = points,
+                            color = Color(strokeJson.getInt("color")),
+                            width = strokeJson.getDouble("width").toFloat()
+                        )
+                    )
+                }
+
+                loadedFrames.add(loadedFrame)
+            }
+
+            frames.clear()
+            if (loadedFrames.isEmpty()) {
+                frames.add(mutableListOf())
+            } else {
+                frames.addAll(loadedFrames)
+            }
+
+            currentFrame = 0
+            activePoints = emptyList()
+            isPlaying = false
+            isEraser = false
+            projectMessage = "Progetto caricato"
+        } catch (e: Exception) {
+            projectMessage = "Nessun progetto salvato"
+        }
+    }
 
     LaunchedEffect(isPlaying, frames.size) {
         while (isPlaying && frames.size > 1) {
@@ -195,6 +301,43 @@ private fun MiniAnimatorScreen() {
             ) {
                 Text(if (isEraser) "Gomma ✓" else "Gomma")
             }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Button(
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    if (!isPlaying) {
+                        saveProject()
+                    }
+                }
+            ) {
+                Text("Salva")
+            }
+
+            Button(
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    if (!isPlaying) {
+                        loadProject()
+                    }
+                }
+            ) {
+                Text("Carica")
+            }
+        }
+
+        if (projectMessage.isNotBlank()) {
+            Text(
+                text = projectMessage,
+                color = Color.White,
+                modifier = Modifier.padding(top = 6.dp)
+            )
         }
 
         Button(

@@ -181,12 +181,17 @@ private fun MiniAnimatorScreen() {
         }
     }
 
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF202124))
             .padding(8.dp)
     ) {
+        Column(
+            modifier = Modifier
+                .weight(0.36f)
+                .padding(end = 8.dp)
+        ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -397,10 +402,12 @@ private fun MiniAnimatorScreen() {
             modifier = Modifier.padding(vertical = 8.dp)
         )
 
+        }
+
         Canvas(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
+                .weight(0.64f)
+                .fillMaxSize()
                 .background(Color.White)
                 .border(2.dp, Color.Gray)
                 .pointerInput(currentFrame, isPlaying) {

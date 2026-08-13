@@ -7,6 +7,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -181,63 +183,49 @@ private fun MiniAnimatorScreen() {
         }
     }
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF202124))
             .padding(8.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .weight(0.36f)
-                .padding(end = 8.dp)
-        ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Button(
-                modifier = Modifier.weight(1f),
                 onClick = {
                     if (frames.size > 1) {
                         isPlaying = !isPlaying
                     }
                 }
             ) {
-                Text(if (isPlaying) "Stop" else "▶ Play")
+                Text(if (isPlaying) "Stop" else "Play")
             }
 
             Button(
-                modifier = Modifier.weight(1f),
                 onClick = {
                     if (!isPlaying && currentFrame > 0) {
                         currentFrame--
                     }
                 }
             ) {
-                Text("◀ Indietro")
+                Text("<")
             }
 
             Button(
-                modifier = Modifier.weight(1f),
                 onClick = {
                     if (!isPlaying && currentFrame < frames.lastIndex) {
                         currentFrame++
                     }
                 }
             ) {
-                Text("Avanti ▶")
+                Text(">")
             }
-        }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
             Button(
-                modifier = Modifier.weight(1f),
                 onClick = {
                     if (!isPlaying) {
                         frames.add(mutableListOf())
@@ -245,16 +233,19 @@ private fun MiniAnimatorScreen() {
                     }
                 }
             ) {
-                Text("+ Nuovo")
+                Text("+ Frame")
             }
 
             Button(
-                modifier = Modifier.weight(1f),
                 onClick = {
                     if (!isPlaying) {
                         val copy = frames[currentFrame]
                             .map { stroke ->
-                                DrawStroke(points = stroke.points.toList(), color = stroke.color, width = stroke.width)
+                                DrawStroke(
+                                    points = stroke.points.toList(),
+                                    color = stroke.color,
+                                    width = stroke.width
+                                )
                             }
                             .toMutableList()
 
@@ -263,11 +254,10 @@ private fun MiniAnimatorScreen() {
                     }
                 }
             ) {
-                Text("⧉ Duplica")
+                Text("Duplica")
             }
 
             Button(
-                modifier = Modifier.weight(1f),
                 onClick = {
                     if (!isPlaying) {
                         frames[currentFrame] = mutableListOf()
@@ -277,27 +267,18 @@ private fun MiniAnimatorScreen() {
             ) {
                 Text("Pulisci")
             }
-        }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
             Button(
-                modifier = Modifier.weight(1f),
                 onClick = {
                     if (!isPlaying) {
                         isEraser = false
                     }
                 }
             ) {
-                Text(if (!isEraser) "Pennello ✓" else "Pennello")
+                Text(if (!isEraser) "Penna ✓" else "Penna")
             }
 
             Button(
-                modifier = Modifier.weight(1f),
                 onClick = {
                     if (!isPlaying) {
                         isEraser = true
@@ -306,16 +287,8 @@ private fun MiniAnimatorScreen() {
             ) {
                 Text(if (isEraser) "Gomma ✓" else "Gomma")
             }
-        }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
             Button(
-                modifier = Modifier.weight(1f),
                 onClick = {
                     if (!isPlaying) {
                         saveProject()
@@ -326,7 +299,6 @@ private fun MiniAnimatorScreen() {
             }
 
             Button(
-                modifier = Modifier.weight(1f),
                 onClick = {
                     if (!isPlaying) {
                         loadProject()
@@ -335,27 +307,30 @@ private fun MiniAnimatorScreen() {
             ) {
                 Text("Carica")
             }
+
+            Button(
+                onClick = {
+                    if (!isPlaying) {
+                        showNewAnimationDialog = true
+                    }
+                }
+            ) {
+                Text("Nuova")
+            }
         }
+
+        Text(
+            text = "Fotogramma ${currentFrame + 1} / ${frames.size}",
+            color = Color.White,
+            modifier = Modifier.padding(vertical = 6.dp)
+        )
 
         if (projectMessage.isNotBlank()) {
             Text(
                 text = projectMessage,
                 color = Color.White,
-                modifier = Modifier.padding(top = 6.dp)
+                modifier = Modifier.padding(bottom = 6.dp)
             )
-        }
-
-        Button(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 6.dp),
-            onClick = {
-                if (!isPlaying) {
-                    showNewAnimationDialog = true
-                }
-            }
-        ) {
-            Text("Nuova animazione")
         }
 
         if (showNewAnimationDialog) {
@@ -396,18 +371,10 @@ private fun MiniAnimatorScreen() {
             )
         }
 
-        Text(
-            text = "Fotogramma ${currentFrame + 1} / ${frames.size}",
-            color = Color.White,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
-
-        }
-
         Canvas(
             modifier = Modifier
-                .weight(0.64f)
-                .fillMaxSize()
+                .fillMaxWidth()
+                .weight(1f)
                 .background(Color.White)
                 .border(2.dp, Color.Gray)
                 .pointerInput(currentFrame, isPlaying) {

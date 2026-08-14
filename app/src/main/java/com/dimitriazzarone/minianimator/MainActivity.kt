@@ -77,6 +77,8 @@ private fun MiniAnimatorScreen() {
     var activePoints by remember { mutableStateOf<List<Offset>>(emptyList()) }
     var isPlaying by remember { mutableStateOf(false) }
     var isEraser by remember { mutableStateOf(false) }
+    var selectedColor by remember { mutableStateOf(Color.Black) }
+    var selectedWidth by remember { mutableStateOf(8f) }
     var showNewAnimationDialog by remember { mutableStateOf(false) }
 
     fun saveProject() {
@@ -193,7 +195,7 @@ private fun MiniAnimatorScreen() {
     ) {
         Row(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
+                .align(Alignment.TopCenter)
                 .zIndex(2f)
                 .fillMaxWidth()
                 .background(Color(0xDD202124))
@@ -292,6 +294,44 @@ private fun MiniAnimatorScreen() {
                 }
             ) {
                 Text(if (isEraser) "Gomma ✓" else "Gomma")
+            }
+
+            Button(
+                onClick = {
+                    if (!isPlaying) {
+                        selectedColor = when (selectedColor) {
+                            Color.Black -> Color.Red
+                            Color.Red -> Color.Blue
+                            Color.Blue -> Color.Green
+                            else -> Color.Black
+                        }
+                        isEraser = false
+                    }
+                }
+            ) {
+                Text(
+                    when (selectedColor) {
+                        Color.Red -> "Rosso"
+                        Color.Blue -> "Blu"
+                        Color.Green -> "Verde"
+                        else -> "Nero"
+                    }
+                )
+            }
+
+            Button(
+                onClick = {
+                    if (!isPlaying) {
+                        selectedWidth = when (selectedWidth) {
+                            4f -> 8f
+                            8f -> 16f
+                            else -> 4f
+                        }
+                        isEraser = false
+                    }
+                }
+            ) {
+                Text("Penna ${selectedWidth.toInt()}")
             }
 
             Button(
@@ -404,8 +444,8 @@ private fun MiniAnimatorScreen() {
                                     frames[currentFrame] =
                                         (frames[currentFrame] + DrawStroke(
                                     points = activePoints,
-                                    color = if (isEraser) Color.White else Color.Black,
-                                    width = if (isEraser) 30f else 8f
+                                    color = if (isEraser) Color.White else selectedColor,
+                                    width = if (isEraser) 30f else selectedWidth
                                 ))
                                             .toMutableList()
                                 }
@@ -447,8 +487,8 @@ private fun MiniAnimatorScreen() {
                 drawStroke(
                     DrawStroke(
                         points = activePoints,
-                        color = if (isEraser) Color.White else Color.Black,
-                        width = if (isEraser) 30f else 8f
+                        color = if (isEraser) Color.White else selectedColor,
+                        width = if (isEraser) 30f else selectedWidth
                     )
                 )
             }

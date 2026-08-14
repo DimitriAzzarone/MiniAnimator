@@ -11,6 +11,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,6 +26,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -183,16 +185,18 @@ private fun MiniAnimatorScreen() {
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF202124))
-            .padding(8.dp)
     ) {
         Row(
             modifier = Modifier
+                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
+                .background(Color(0xDD202124))
+                .horizontalScroll(rememberScrollState())
+                .padding(6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Button(
@@ -322,14 +326,20 @@ private fun MiniAnimatorScreen() {
         Text(
             text = "Fotogramma ${currentFrame + 1} / ${frames.size}",
             color = Color.White,
-            modifier = Modifier.padding(vertical = 6.dp)
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .background(Color(0xAA202124))
+                .padding(horizontal = 8.dp, vertical = 4.dp)
         )
 
         if (projectMessage.isNotBlank()) {
             Text(
                 text = projectMessage,
                 color = Color.White,
-                modifier = Modifier.padding(bottom = 6.dp)
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .background(Color(0xAA202124))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }
 
@@ -373,8 +383,7 @@ private fun MiniAnimatorScreen() {
 
         Canvas(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
+                .fillMaxSize()
                 .background(Color.White)
                 .border(2.dp, Color.Gray)
                 .pointerInput(currentFrame, isPlaying) {

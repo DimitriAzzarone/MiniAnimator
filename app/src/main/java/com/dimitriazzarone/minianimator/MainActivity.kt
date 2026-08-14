@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -193,6 +194,7 @@ private fun MiniAnimatorScreen() {
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+                .zIndex(2f)
                 .fillMaxWidth()
                 .background(Color(0xDD202124))
                 .horizontalScroll(rememberScrollState())
@@ -328,6 +330,7 @@ private fun MiniAnimatorScreen() {
             color = Color.White,
             modifier = Modifier
                 .align(Alignment.TopStart)
+                .zIndex(2f)
                 .background(Color(0xAA202124))
                 .padding(horizontal = 8.dp, vertical = 4.dp)
         )
@@ -338,6 +341,7 @@ private fun MiniAnimatorScreen() {
                 color = Color.White,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
+                    .zIndex(2f)
                     .background(Color(0xAA202124))
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             )

@@ -1,6 +1,9 @@
 package com.dimitriazzarone.minianimator
 
 import android.os.Bundle
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
@@ -41,6 +44,9 @@ import org.json.JSONObject
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import android.graphics.BitmapFactory
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.unit.IntSize
 
 private data class DrawStroke(
     val points: List<Offset>,
@@ -73,6 +79,12 @@ private fun MiniAnimatorScreen() {
         )
     }
 
+    val frameImageUris = remember {
+        mutableStateListOf<String?>(
+            null
+        )
+    }
+
     var currentFrame by remember { mutableStateOf(0) }
     var activePoints by remember { mutableStateOf<List<Offset>>(emptyList()) }
     var isPlaying by remember { mutableStateOf(false) }
@@ -80,6 +92,23 @@ private fun MiniAnimatorScreen() {
     var selectedColor by remember { mutableStateOf(Color.Black) }
     var selectedWidth by remember { mutableStateOf(8f) }
     var showNewAnimationDialog by remember { mutableStateOf(false) }
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null && currentFrame in frameImageUris.indices) {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: Exception) {
+            }
+
+            frameImageUris[currentFrame] = uri.toString()
+            projectMessage = "Immagine importata"
+        }
+    }
 
     fun saveProject() {
         try {
@@ -111,6 +140,14 @@ private fun MiniAnimatorScreen() {
 
             root.put("frames", framesJson)
 
+            val frameImagesJson = JSONArray()
+            frames.indices.forEach { index ->
+                frameImagesJson.put(
+                    frameImageUris.getOrNull(index) ?: JSONObject.NULL
+                )
+            }
+            root.put("frameImages", frameImagesJson)
+
             context.openFileOutput(
                 "minianimator_project.json",
                 android.content.Context.MODE_PRIVATE
@@ -132,6 +169,8 @@ private fun MiniAnimatorScreen() {
             val root = JSONObject(text)
             val framesJson = root.getJSONArray("frames")
             val loadedFrames = mutableListOf<MutableList<DrawStroke>>()
+            val loadedImageUris = mutableListOf<String?>()
+            val frameImagesJson = root.optJSONArray("frameImages")
 
             for (frameIndex in 0 until framesJson.length()) {
                 val frameJson = framesJson.getJSONArray(frameIndex)
@@ -162,13 +201,28 @@ private fun MiniAnimatorScreen() {
                 }
 
                 loadedFrames.add(loadedFrame)
+
+                val imageUri = if (
+                    frameImagesJson != null &&
+                    frameIndex < frameImagesJson.length() &&
+                    !frameImagesJson.isNull(frameIndex)
+                ) {
+                    frameImagesJson.optString(frameIndex, null)
+                } else {
+                    null
+                }
+
+                loadedImageUris.add(imageUri)
             }
 
             frames.clear()
+            frameImageUris.clear()
             if (loadedFrames.isEmpty()) {
                 frames.add(mutableListOf())
+                frameImageUris.add(null)
             } else {
                 frames.addAll(loadedFrames)
+                frameImageUris.addAll(loadedImageUris)
             }
 
             currentFrame = 0
@@ -237,6 +291,7 @@ private fun MiniAnimatorScreen() {
                 onClick = {
                     if (!isPlaying) {
                         frames.add(mutableListOf())
+                        frameImageUris.add(null)
                         currentFrame = frames.lastIndex
                     }
                 }
@@ -258,6 +313,10 @@ private fun MiniAnimatorScreen() {
                             .toMutableList()
 
                         frames.add(currentFrame + 1, copy)
+                        frameImageUris.add(
+                            currentFrame + 1,
+                            frameImageUris.getOrNull(currentFrame)
+                        )
                         currentFrame += 1
                     }
                 }
@@ -337,6 +396,16 @@ private fun MiniAnimatorScreen() {
             Button(
                 onClick = {
                     if (!isPlaying) {
+                        imagePicker.launch(arrayOf("image/*"))
+                    }
+                }
+            ) {
+                Text("Importa")
+            }
+
+            Button(
+                onClick = {
+                    if (!isPlaying) {
                         saveProject()
                     }
                 }
@@ -402,7 +471,9 @@ private fun MiniAnimatorScreen() {
                     androidx.compose.material3.TextButton(
                         onClick = {
                             frames.clear()
+                            frameImageUris.clear()
                             frames.add(mutableListOf())
+                            frameImageUris.add(null)
                             currentFrame = 0
                             activePoints = emptyList()
                             isPlaying = false
@@ -423,6 +494,21 @@ private fun MiniAnimatorScreen() {
                     }
                 }
             )
+        }
+
+        val currentImageUri = frameImageUris.getOrNull(currentFrame)
+        val currentBackgroundImage = remember(currentImageUri) {
+            currentImageUri?.let { uriString ->
+                try {
+                    context.contentResolver.openInputStream(
+                        android.net.Uri.parse(uriString)
+                    )?.use { input ->
+                        BitmapFactory.decodeStream(input)?.asImageBitmap()
+                    }
+                } catch (_: Exception) {
+                    null
+                }
+            }
         }
 
         Canvas(
@@ -475,6 +561,16 @@ private fun MiniAnimatorScreen() {
                         width = stroke.width,
                         cap = StrokeCap.Round,
                         join = StrokeJoin.Round
+                    )
+                )
+            }
+
+            currentBackgroundImage?.let { image ->
+                drawImage(
+                    image = image,
+                    dstSize = IntSize(
+                        size.width.toInt(),
+                        size.height.toInt()
                     )
                 )
             }

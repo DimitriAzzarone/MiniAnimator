@@ -91,6 +91,7 @@ private fun MiniAnimatorScreen() {
     var isEraser by remember { mutableStateOf(false) }
     var selectedColor by remember { mutableStateOf(Color.Black) }
     var selectedWidth by remember { mutableStateOf(8f) }
+    var showReferenceImage by remember { mutableStateOf(true) }
     var showNewAnimationDialog by remember { mutableStateOf(false) }
 
     val imagePicker = rememberLauncherForActivityResult(
@@ -355,18 +356,10 @@ private fun MiniAnimatorScreen() {
                 Text(if (isEraser) "Gomma ✓" else "Gomma")
             }
 
-            Button(
-                onClick = {
-                    if (!isPlaying) {
-                        selectedColor = when (selectedColor) {
-                            Color.Black -> Color.Red
-                            Color.Red -> Color.Blue
-                            Color.Blue -> Color.Green
-                            else -> Color.Black
-                        }
-                        isEraser = false
-                    }
-                }
+            Button(onClick = { if (!isPlaying) { selectedColor = Color.Black; isEraser = false } }) { Text("Nero") }
+            Button(onClick = { if (!isPlaying) { selectedColor = Color.Red; isEraser = false } }) { Text("Rosso") }
+            Button(onClick = { if (!isPlaying) { selectedColor = Color.Blue; isEraser = false } }) { Text("Blu") }
+            Button(onClick = { if (!isPlaying) { selectedColor = Color.Green; isEraser = false } }) { Text("Verde") }
             ) {
                 Text(
                     when (selectedColor) {
@@ -378,17 +371,9 @@ private fun MiniAnimatorScreen() {
                 )
             }
 
-            Button(
-                onClick = {
-                    if (!isPlaying) {
-                        selectedWidth = when (selectedWidth) {
-                            4f -> 8f
-                            8f -> 16f
-                            else -> 4f
-                        }
-                        isEraser = false
-                    }
-                }
+            Button(onClick = { if (!isPlaying) { selectedWidth = 4f; isEraser = false } }) { Text("Fine") }
+            Button(onClick = { if (!isPlaying) { selectedWidth = 8f; isEraser = false } }) { Text("Medio") }
+            Button(onClick = { if (!isPlaying) { selectedWidth = 16f; isEraser = false } }) { Text("Spesso") }
             ) {
                 Text("Penna ${selectedWidth.toInt()}")
             }
@@ -401,6 +386,16 @@ private fun MiniAnimatorScreen() {
                 }
             ) {
                 Text("Importa")
+            }
+
+            Button(
+                onClick = {
+                    if (!isPlaying) {
+                        showReferenceImage = !showReferenceImage
+                    }
+                }
+            ) {
+                Text(if (showReferenceImage) "Sfondo ON" else "Sfondo OFF")
             }
 
             Button(
@@ -434,15 +429,34 @@ private fun MiniAnimatorScreen() {
             }
         }
 
-        Text(
-            text = "Fotogramma ${currentFrame + 1} / ${frames.size}",
-            color = Color.White,
+        Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .zIndex(2f)
+                .fillMaxWidth()
                 .background(Color(0xAA202124))
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-        )
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            frames.indices.forEach { index ->
+                Button(
+                    onClick = {
+                        if (!isPlaying) {
+                            currentFrame = index
+                        }
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = if (index == currentFrame)
+                            Color(0xFF1565C0)
+                        else
+                            Color(0xFF424242)
+                    )
+                ) {
+                    Text("${index + 1}")
+                }
+            }
+        }
 
         if (projectMessage.isNotBlank()) {
             Text(
@@ -565,14 +579,16 @@ private fun MiniAnimatorScreen() {
                 )
             }
 
-            currentBackgroundImage?.let { image ->
-                drawImage(
-                    image = image,
-                    dstSize = IntSize(
-                        size.width.toInt(),
-                        size.height.toInt()
+            if (showReferenceImage) {
+                currentBackgroundImage?.let { image ->
+                    drawImage(
+                        image = image,
+                        dstSize = IntSize(
+                            size.width.toInt(),
+                            size.height.toInt()
+                        )
                     )
-                )
+                }
             }
 
             frames[currentFrame].forEach { stroke ->

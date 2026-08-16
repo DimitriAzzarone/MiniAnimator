@@ -162,14 +162,18 @@ private fun MiniAnimatorScreen() {
                     canvas.drawColor(android.graphics.Color.WHITE)
 
                     if (showReferenceImage) {
-                        frameImageUris.getOrNull(frameIndex)?.let { uriString ->
-                            try {
-                                context.contentResolver
-                                    .openInputStream(Uri.parse(uriString))
-                                    ?.use { input ->
-                                        BitmapFactory.decodeStream(input)
-                                    }
-                                    ?.let { background ->
+                    frameImageUris.getOrNull(frameIndex)?.let { uriString ->
+                        try {
+                            val input = context.contentResolver.openInputStream(
+                                Uri.parse(uriString)
+                            )
+
+                            if (input != null) {
+                                input.use { stream ->
+                                    val background: Bitmap? =
+                                        BitmapFactory.decodeStream(stream)
+
+                                    if (background != null) {
                                         canvas.drawBitmap(
                                             background,
                                             null,
@@ -183,7 +187,11 @@ private fun MiniAnimatorScreen() {
                                         )
                                         background.recycle()
                                     }
-                            } catch (_: Exception) {
+                                }
+                            }
+                        } catch (_: Exception) {
+                        }
+                    }
                             }
                         }
                     }

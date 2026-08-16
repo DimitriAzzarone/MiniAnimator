@@ -31,6 +31,7 @@ android {
 }
 
 dependencies {
+    implementation("com.squareup:gifencoder:0.10.1")
     val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
     implementation(composeBom)
 

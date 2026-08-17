@@ -193,8 +193,6 @@ private fun MiniAnimatorScreen() {
                         }
                     }
                             }
-                        }
-                    }
 
                     frame.forEach { stroke ->
                         if (stroke.points.size >= 2) {

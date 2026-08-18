@@ -44,18 +44,7 @@ import org.json.JSONObject
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas as AndroidCanvas
-import android.graphics.Paint
-import android.graphics.Path as AndroidPath
-import android.graphics.Rect
-import android.os.Environment
-import androidx.compose.ui.layout.onSizeChanged
-import com.squareup.gifencoder.GifEncoder
-import com.squareup.gifencoder.ImageOptions
-import java.io.File
-import java.util.concurrent.TimeUnit
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.IntSize
 
@@ -103,7 +92,6 @@ private fun MiniAnimatorScreen() {
     var selectedColor by remember { mutableStateOf(Color.Black) }
     var selectedWidth by remember { mutableStateOf(8f) }
     var showReferenceImage by remember { mutableStateOf(true) }
-    var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     var showNewAnimationDialog by remember { mutableStateOf(false) }
 
     val imagePicker = rememberLauncherForActivityResult(
@@ -120,132 +108,6 @@ private fun MiniAnimatorScreen() {
 
             frameImageUris[currentFrame] = uri.toString()
             projectMessage = "Immagine importata"
-        }
-    }
-
-    fun exportGif() {
-        if (canvasSize.width <= 0 || canvasSize.height <= 0) {
-            projectMessage = "Dimensioni Canvas non disponibili"
-            return
-        }
-
-        try {
-            val exportDir = File(
-                context.getExternalFilesDir(Environment.DIRECTORY_PICTURES),
-                "MiniAnimator"
-            ).apply { mkdirs() }
-
-            val outputFile = File(
-                exportDir,
-                "minianimator_${System.currentTimeMillis()}.gif"
-            )
-
-            outputFile.outputStream().use { output ->
-                val encoder = GifEncoder(
-                    output,
-                    canvasSize.width,
-                    canvasSize.height,
-                    0
-                )
-
-                val options = ImageOptions().apply {
-                    setDelay(250, TimeUnit.MILLISECONDS)
-                }
-
-                frames.forEachIndexed { frameIndex, frame ->
-                    val bitmap = Bitmap.createBitmap(
-                        canvasSize.width,
-                        canvasSize.height,
-                        Bitmap.Config.ARGB_8888
-                    )
-
-                    val canvas = AndroidCanvas(bitmap)
-                    canvas.drawColor(android.graphics.Color.WHITE)
-
-                    if (showReferenceImage) {
-                    frameImageUris.getOrNull(frameIndex)?.let { uriString ->
-                        try {
-                            val input = context.contentResolver.openInputStream(
-                                Uri.parse(uriString)
-                            )
-
-                            if (input != null) {
-                                input.use { stream ->
-                                    val background: Bitmap? =
-                                        BitmapFactory.decodeStream(stream)
-
-                                    if (background != null) {
-                                        canvas.drawBitmap(
-                                            background,
-                                            null,
-                                            Rect(
-                                                0,
-                                                0,
-                                                canvasSize.width,
-                                                canvasSize.height
-                                            ),
-                                            null
-                                        )
-                                        background.recycle()
-                                    }
-                                }
-                            }
-                        } catch (_: Exception) {
-                        }
-                    }
-                            }
-
-                    frame.forEach { stroke ->
-                        if (stroke.points.size >= 2) {
-                            val path = AndroidPath().apply {
-                                moveTo(
-                                    stroke.points.first().x,
-                                    stroke.points.first().y
-                                )
-                                stroke.points.drop(1).forEach { point ->
-                                    lineTo(point.x, point.y)
-                                }
-                            }
-
-                            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                                color = stroke.color.toArgb()
-                                style = Paint.Style.STROKE
-                                strokeWidth = stroke.width
-                                strokeCap = Paint.Cap.ROUND
-                                strokeJoin = Paint.Join.ROUND
-                            }
-
-                            canvas.drawPath(path, paint)
-                        }
-                    }
-
-                    val pixels = IntArray(canvasSize.width * canvasSize.height)
-                    bitmap.getPixels(
-                        pixels,
-                        0,
-                        canvasSize.width,
-                        0,
-                        0,
-                        canvasSize.width,
-                        canvasSize.height
-                    )
-
-                    val rgb = Array(canvasSize.height) { y ->
-                        IntArray(canvasSize.width) { x ->
-                            pixels[y * canvasSize.width + x] and 0x00FFFFFF
-                        }
-                    }
-
-                    encoder.addImage(rgb, options)
-                    bitmap.recycle()
-                }
-
-                encoder.finishEncoding()
-            }
-
-            projectMessage = "GIF esportata: ${outputFile.absolutePath}"
-        } catch (e: Exception) {
-            projectMessage = "Errore export GIF: ${e.message ?: "errore sconosciuto"}"
         }
     }
 
@@ -546,16 +408,6 @@ private fun MiniAnimatorScreen() {
             Button(
                 onClick = {
                     if (!isPlaying) {
-                        exportGif()
-                    }
-                }
-            ) {
-                Text("Esporta GIF")
-            }
-
-            Button(
-                onClick = {
-                    if (!isPlaying) {
                         showNewAnimationDialog = true
                     }
                 }
@@ -663,7 +515,6 @@ private fun MiniAnimatorScreen() {
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .onSizeChanged { canvasSize = it }
                 .background(Color.White)
                 .border(2.dp, Color.Gray)
                 .pointerInput(currentFrame, isPlaying) {

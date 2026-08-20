@@ -363,7 +363,6 @@ private fun MiniAnimatorScreen() {
             Button(onClick = { if (!isPlaying) { selectedWidth = 4f; isEraser = false } }) { Text("Fine") }
             Button(onClick = { if (!isPlaying) { selectedWidth = 8f; isEraser = false } }) { Text("Medio") }
             Button(onClick = { if (!isPlaying) { selectedWidth = 16f; isEraser = false } }) { Text("Spesso") }
-            ) {
             Button(
                 onClick = {
                     if (!isPlaying) {

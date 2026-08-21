@@ -44,6 +44,7 @@ import org.json.JSONObject
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas as AndroidCanvas
 import android.graphics.Paint
@@ -101,11 +102,8 @@ private fun MiniAnimatorScreen() {
     var isEraser by remember { mutableStateOf(false) }
     var selectedColor by remember { mutableStateOf(Color.Black) }
     var selectedWidth by remember { mutableStateOf(8f) }
-<<<<<<< HEAD
-=======
     var showReferenceImage by remember { mutableStateOf(true) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
->>>>>>> 99adeca (Aggiunge esportazione GIF)
     var showNewAnimationDialog by remember { mutableStateOf(false) }
 
     val imagePicker = rememberLauncherForActivityResult(

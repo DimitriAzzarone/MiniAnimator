@@ -123,24 +123,17 @@ private fun MiniAnimatorScreen() {
         }
     }
 
-    fun exportGif() {
+    fun exportGif(uri: Uri) {
         if (canvasSize.width <= 0 || canvasSize.height <= 0) {
             projectMessage = "Dimensioni Canvas non disponibili"
             return
         }
 
         try {
-            val exportDir = File(
-                context.getExternalFilesDir(Environment.DIRECTORY_PICTURES),
-                "MiniAnimator"
-            ).apply { mkdirs() }
+            val outputStream = context.contentResolver.openOutputStream(uri)
+                ?: throw IllegalStateException("Impossibile aprire il file")
 
-            val outputFile = File(
-                exportDir,
-                "minianimator_${System.currentTimeMillis()}.gif"
-            )
-
-            outputFile.outputStream().use { output ->
+            outputStream.use { output ->
                 val encoder = GifEncoder(
                     output,
                     canvasSize.width,
@@ -237,9 +230,19 @@ private fun MiniAnimatorScreen() {
                 encoder.finishEncoding()
             }
 
-            projectMessage = "GIF esportata: ${outputFile.absolutePath}"
+            projectMessage = "GIF esportata correttamente"
         } catch (e: Exception) {
             projectMessage = "Errore export GIF: ${e.message ?: "errore sconosciuto"}"
+        }
+    }
+
+    val gifSaver = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("image/gif")
+    ) { uri: Uri? ->
+        if (uri != null) {
+            exportGif(uri)
+        } else {
+            projectMessage = "Esportazione annullata"
         }
     }
 
@@ -385,11 +388,16 @@ private fun MiniAnimatorScreen() {
                 .align(Alignment.TopCenter)
                 .zIndex(2f)
                 .fillMaxWidth()
-                .background(Color(0xDD202124))
+                .background(Color(0xFF263238))
                 .horizontalScroll(rememberScrollState())
-                .padding(6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Text(
+                text = "🎬 MiniAnimator",
+                color = Color.White
+            )
             Button(
                 onClick = {
                     if (frames.size > 1) {
@@ -397,7 +405,7 @@ private fun MiniAnimatorScreen() {
                     }
                 }
             ) {
-                Text(if (isPlaying) "Stop" else "Play")
+                Text(if (isPlaying) "■ Stop" else "▶ Play")
             }
 
             Button(
@@ -429,7 +437,7 @@ private fun MiniAnimatorScreen() {
                     }
                 }
             ) {
-                Text("+ Frame")
+                Text("+ Fotogramma")
             }
 
             Button(
@@ -454,7 +462,7 @@ private fun MiniAnimatorScreen() {
                     }
                 }
             ) {
-                Text("Duplica")
+                Text("⧉ Duplica")
             }
 
             Button(
@@ -465,7 +473,7 @@ private fun MiniAnimatorScreen() {
                     }
                 }
             ) {
-                Text("Pulisci")
+                Text("⌫ Pulisci")
             }
 
             Button(
@@ -533,7 +541,7 @@ private fun MiniAnimatorScreen() {
                     }
                 }
             ) {
-                Text("Importa")
+                Text("📷 Importa")
             }
 
         Button(
@@ -553,7 +561,7 @@ private fun MiniAnimatorScreen() {
                     }
                 }
             ) {
-                Text("Salva")
+                Text("💾 Salva")
             }
 
             Button(
@@ -563,17 +571,19 @@ private fun MiniAnimatorScreen() {
                     }
                 }
             ) {
-                Text("Carica")
+                Text("📂 Carica")
             }
 
             Button(
                 onClick = {
                     if (!isPlaying) {
-                        exportGif()
+                        gifSaver.launch(
+                            "MiniAnimator_${System.currentTimeMillis()}.gif"
+                        )
                     }
                 }
             ) {
-                Text("Esporta GIF")
+                Text("🎞 GIF")
             }
 
             Button(
@@ -583,7 +593,7 @@ private fun MiniAnimatorScreen() {
                     }
                 }
             ) {
-                Text("Nuova")
+                Text("＋ Nuova")
             }
         }
 
@@ -591,7 +601,7 @@ private fun MiniAnimatorScreen() {
             text = "Fotogramma ${currentFrame + 1} / ${frames.size}",
             color = Color.White,
             modifier = Modifier
-                .align(Alignment.TopStart)
+                .align(Alignment.BottomStart)
                 .zIndex(2f)
                 .background(Color(0xAA202124))
                 .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -602,7 +612,7 @@ private fun MiniAnimatorScreen() {
                 text = projectMessage,
                 color = Color.White,
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.BottomEnd)
                     .zIndex(2f)
                     .background(Color(0xAA202124))
                     .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -634,7 +644,7 @@ private fun MiniAnimatorScreen() {
                             showNewAnimationDialog = false
                         }
                     ) {
-                        Text("Nuova")
+                        Text("＋ Nuova")
                     }
                 },
                 dismissButton = {
@@ -719,14 +729,16 @@ private fun MiniAnimatorScreen() {
                 )
             }
 
-            currentBackgroundImage?.let { image ->
-                drawImage(
-                    image = image,
-                    dstSize = IntSize(
-                        size.width.toInt(),
-                        size.height.toInt()
+            if (showReferenceImage) {
+                currentBackgroundImage?.let { image ->
+                    drawImage(
+                        image = image,
+                        dstSize = IntSize(
+                            size.width.toInt(),
+                            size.height.toInt()
+                        )
                     )
-                )
+                }
             }
 
             frames[currentFrame].forEach { stroke ->

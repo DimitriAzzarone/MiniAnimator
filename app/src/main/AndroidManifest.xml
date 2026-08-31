@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
+        android:icon="@drawable/ic_minianimator"
         android:allowBackup="true"
         android:label="MiniAnimator"
         android:supportsRtl="true"

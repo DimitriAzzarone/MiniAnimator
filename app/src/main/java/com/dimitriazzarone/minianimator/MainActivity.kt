@@ -19,10 +19,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.Slider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -59,10 +62,20 @@ import java.util.concurrent.TimeUnit
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.IntSize
 
+private enum class BrushType {
+    PENCIL,
+    HARD,
+    SOFT,
+    MARKER
+}
+
 private data class DrawStroke(
     val points: List<Offset>,
     val color: Color = Color.Black,
-    val width: Float = 8f
+    val width: Float = 8f,
+    val opacity: Float = 1f,
+    val hardness: Float = 1f,
+    val brushType: BrushType = BrushType.HARD
 )
 
 class MainActivity : ComponentActivity() {
@@ -102,6 +115,10 @@ private fun MiniAnimatorScreen() {
     var isEraser by remember { mutableStateOf(false) }
     var selectedColor by remember { mutableStateOf(Color.Black) }
     var selectedWidth by remember { mutableStateOf(8f) }
+    var selectedOpacity by remember { mutableStateOf(1f) }
+    var selectedHardness by remember { mutableStateOf(1f) }
+    var selectedBrush by remember { mutableStateOf(BrushType.HARD) }
+    var backgroundOpacity by remember { mutableStateOf(1f) }
     var showReferenceImage by remember { mutableStateOf(true) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     var showNewAnimationDialog by remember { mutableStateOf(false) }
@@ -164,6 +181,13 @@ private fun MiniAnimatorScreen() {
                                         BitmapFactory.decodeStream(input)
                                     }
                                     ?.let { background ->
+                                        val backgroundPaint = Paint().apply {
+                                            alpha = (
+                                                255f *
+                                                    backgroundOpacity.coerceIn(0f, 1f)
+                                                ).toInt().coerceIn(0, 255)
+                                        }
+
                                         canvas.drawBitmap(
                                             background,
                                             null,
@@ -173,7 +197,7 @@ private fun MiniAnimatorScreen() {
                                                 canvasSize.width,
                                                 canvasSize.height
                                             ),
-                                            null
+                                            backgroundPaint
                                         )
                                         background.recycle()
                                     }
@@ -258,6 +282,9 @@ private fun MiniAnimatorScreen() {
                     val strokeJson = JSONObject()
                     strokeJson.put("color", stroke.color.toArgb())
                     strokeJson.put("width", stroke.width.toDouble())
+                    strokeJson.put("opacity", stroke.opacity.toDouble())
+                    strokeJson.put("hardness", stroke.hardness.toDouble())
+                    strokeJson.put("brushType", stroke.brushType.name)
 
                     val pointsJson = JSONArray()
                     stroke.points.forEach { point ->
@@ -331,7 +358,16 @@ private fun MiniAnimatorScreen() {
                         DrawStroke(
                             points = points,
                             color = Color(strokeJson.getInt("color")),
-                            width = strokeJson.getDouble("width").toFloat()
+                            width = strokeJson.getDouble("width").toFloat(),
+                            opacity = strokeJson.optDouble("opacity", 1.0).toFloat(),
+                            hardness = strokeJson.optDouble("hardness", 1.0).toFloat(),
+                            brushType = try {
+                                BrushType.valueOf(
+                                    strokeJson.optString("brushType", "HARD")
+                                )
+                            } catch (_: Exception) {
+                                BrushType.HARD
+                            }
                         )
                     )
                 }
@@ -448,7 +484,10 @@ private fun MiniAnimatorScreen() {
                                 DrawStroke(
                                     points = stroke.points.toList(),
                                     color = stroke.color,
-                                    width = stroke.width
+                                    width = stroke.width,
+                                    opacity = stroke.opacity,
+                                    hardness = stroke.hardness,
+                                    brushType = stroke.brushType
                                 )
                             }
                             .toMutableList()
@@ -489,6 +528,29 @@ private fun MiniAnimatorScreen() {
             Button(
                 onClick = {
                     if (!isPlaying) {
+                        selectedBrush = when (selectedBrush) {
+                            BrushType.PENCIL -> BrushType.HARD
+                            BrushType.HARD -> BrushType.SOFT
+                            BrushType.SOFT -> BrushType.MARKER
+                            BrushType.MARKER -> BrushType.PENCIL
+                        }
+                        isEraser = false
+                    }
+                }
+            ) {
+                Text(
+                    when (selectedBrush) {
+                        BrushType.PENCIL -> "Matita"
+                        BrushType.HARD -> "Duro"
+                        BrushType.SOFT -> "Morbido"
+                        BrushType.MARKER -> "Marker"
+                    }
+                )
+            }
+
+            Button(
+                onClick = {
+                    if (!isPlaying) {
                         isEraser = true
                     }
                 }
@@ -496,27 +558,47 @@ private fun MiniAnimatorScreen() {
                 Text(if (isEraser) "Gomma ✓" else "Gomma")
             }
 
-            Button(
-                onClick = {
-                    if (!isPlaying) {
-                        selectedColor = when (selectedColor) {
-                            Color.Black -> Color.Red
-                            Color.Red -> Color.Blue
-                            Color.Blue -> Color.Green
-                            else -> Color.Black
-                        }
-                        isEraser = false
+            val paletteColors = listOf(
+                Color.Black,
+                Color(0xFF424242),
+                Color(0xFF795548),
+                Color(0xFFD32F2F),
+                Color(0xFFF57C00),
+                Color(0xFFFBC02D),
+                Color(0xFF388E3C),
+                Color(0xFF009688),
+                Color(0xFF1976D2),
+                Color(0xFF512DA8),
+                Color(0xFFC2185B),
+                Color.White
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                paletteColors.forEach { paletteColor ->
+                    Button(
+                        onClick = {
+                            if (!isPlaying) {
+                                selectedColor = paletteColor
+                                isEraser = false
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = paletteColor
+                        )
+                    ) {
+                        Text(
+                            text = if (selectedColor == paletteColor) "✓" else " ",
+                            color = if (
+                                paletteColor == Color.Black ||
+                                paletteColor == Color(0xFF424242) ||
+                                paletteColor == Color(0xFF512DA8)
+                            ) Color.White else Color.Black
+                        )
                     }
                 }
-            ) {
-                Text(
-                    when (selectedColor) {
-                        Color.Red -> "Rosso"
-                        Color.Blue -> "Blu"
-                        Color.Green -> "Verde"
-                        else -> "Nero"
-                    }
-                )
             }
 
             Button(
@@ -532,6 +614,83 @@ private fun MiniAnimatorScreen() {
                 }
             ) {
                 Text("Penna ${selectedWidth.toInt()}")
+            }
+
+            Column(
+                modifier = Modifier.width(180.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Intensità ${(selectedOpacity * 100).toInt()}%",
+                    color = Color.White
+                )
+
+                Slider(
+                    value = selectedOpacity,
+                    onValueChange = {
+                        selectedOpacity = it
+                    },
+                    valueRange = 0.05f..1f,
+                    enabled = !isPlaying
+                )
+            }
+
+            Column(
+                modifier = Modifier.width(180.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Dimensione ${selectedWidth.toInt()}",
+                    color = Color.White
+                )
+
+                Slider(
+                    value = selectedWidth,
+                    onValueChange = {
+                        selectedWidth = it
+                    },
+                    valueRange = 2f..40f,
+                    enabled = !isPlaying
+                )
+            }
+
+            Column(
+                modifier = Modifier.width(180.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Sfondo ${(backgroundOpacity * 100).toInt()}%",
+                    color = Color.White
+                )
+
+                Slider(
+                    value = backgroundOpacity,
+                    onValueChange = {
+                        backgroundOpacity = it
+                        showReferenceImage = it > 0f
+                    },
+                    valueRange = 0f..1f,
+                    enabled = !isPlaying
+                )
+            }
+
+            Column(
+                modifier = Modifier.width(180.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Durezza ${(selectedHardness * 100).toInt()}%",
+                    color = Color.White
+                )
+
+                Slider(
+                    value = selectedHardness,
+                    onValueChange = {
+                        selectedHardness = it
+                    },
+                    valueRange = 0f..1f,
+                    enabled = !isPlaying
+                )
             }
 
             Button(
@@ -695,7 +854,10 @@ private fun MiniAnimatorScreen() {
                                         (frames[currentFrame] + DrawStroke(
                                     points = activePoints,
                                     color = if (isEraser) Color.White else selectedColor,
-                                    width = if (isEraser) 30f else selectedWidth
+                                    width = if (isEraser) 30f else selectedWidth,
+                                    opacity = if (isEraser) 1f else selectedOpacity,
+                                    hardness = if (isEraser) 1f else selectedHardness,
+                                    brushType = if (isEraser) BrushType.HARD else selectedBrush
                                 ))
                                             .toMutableList()
                                 }
@@ -718,15 +880,79 @@ private fun MiniAnimatorScreen() {
                     }
                 }
 
-                drawPath(
-                    path = path,
-                    color = stroke.color,
-                    style = Stroke(
-                        width = stroke.width,
-                        cap = StrokeCap.Round,
-                        join = StrokeJoin.Round
-                    )
-                )
+                when (stroke.brushType) {
+
+                    BrushType.PENCIL -> {
+                        drawPath(
+                            path = path,
+                            color = stroke.color.copy(
+                                alpha = (stroke.opacity * 0.85f).coerceIn(0f, 1f)
+                            ),
+                            style = Stroke(
+                                width = (stroke.width * 0.55f).coerceAtLeast(1f),
+                                cap = StrokeCap.Round,
+                                join = StrokeJoin.Round
+                            )
+                        )
+                    }
+
+                    BrushType.HARD -> {
+                        drawPath(
+                            path = path,
+                            color = stroke.color.copy(
+                                alpha = stroke.opacity.coerceIn(0f, 1f)
+                            ),
+                            style = Stroke(
+                                width = stroke.width,
+                                cap = StrokeCap.Round,
+                                join = StrokeJoin.Round
+                            )
+                        )
+                    }
+
+                    BrushType.SOFT -> {
+                        val hardness = stroke.hardness.coerceIn(0f, 1f)
+
+                        drawPath(
+                            path = path,
+                            color = stroke.color.copy(
+                                alpha = (stroke.opacity * 0.18f * (1f - hardness * 0.5f))
+                                    .coerceIn(0f, 1f)
+                            ),
+                            style = Stroke(
+                                width = stroke.width * 2.2f,
+                                cap = StrokeCap.Round,
+                                join = StrokeJoin.Round
+                            )
+                        )
+
+                        drawPath(
+                            path = path,
+                            color = stroke.color.copy(
+                                alpha = (stroke.opacity * 0.55f).coerceIn(0f, 1f)
+                            ),
+                            style = Stroke(
+                                width = stroke.width,
+                                cap = StrokeCap.Round,
+                                join = StrokeJoin.Round
+                            )
+                        )
+                    }
+
+                    BrushType.MARKER -> {
+                        drawPath(
+                            path = path,
+                            color = stroke.color.copy(
+                                alpha = (stroke.opacity * 0.55f).coerceIn(0f, 1f)
+                            ),
+                            style = Stroke(
+                                width = stroke.width * 1.4f,
+                                cap = StrokeCap.Round,
+                                join = StrokeJoin.Round
+                            )
+                        )
+                    }
+                }
             }
 
             if (showReferenceImage) {
@@ -736,7 +962,8 @@ private fun MiniAnimatorScreen() {
                         dstSize = IntSize(
                             size.width.toInt(),
                             size.height.toInt()
-                        )
+                        ),
+                        alpha = backgroundOpacity.coerceIn(0f, 1f)
                     )
                 }
             }
@@ -750,7 +977,10 @@ private fun MiniAnimatorScreen() {
                     DrawStroke(
                         points = activePoints,
                         color = if (isEraser) Color.White else selectedColor,
-                        width = if (isEraser) 30f else selectedWidth
+                        width = if (isEraser) 30f else selectedWidth,
+                        opacity = if (isEraser) 1f else selectedOpacity,
+                        hardness = if (isEraser) 1f else selectedHardness,
+                        brushType = if (isEraser) BrushType.HARD else selectedBrush
                     )
                 )
             }

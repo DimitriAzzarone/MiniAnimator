@@ -7,11 +7,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
@@ -20,11 +22,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Slider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -414,575 +420,474 @@ private fun MiniAnimatorScreen() {
         }
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF202124))
+            .background(Color(0xFF1B1B1B))
     ) {
         Row(
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .zIndex(2f)
                 .fillMaxWidth()
-                .background(Color(0xFF263238))
+                .background(Color(0xFF242424))
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(
-                text = "🎬 MiniAnimator",
-                color = Color.White
-            )
-            Button(
-                onClick = {
-                    if (frames.size > 1) {
-                        isPlaying = !isPlaying
-                    }
-                }
-            ) {
-                Text(if (isPlaying) "■ Stop" else "▶ Play")
-            }
+            Text("MiniAnimator", color = Color.White)
+            TextButton(onClick = { projectMessage = "File" }) { Text("File") }
+            TextButton(onClick = { projectMessage = "Modifica" }) { Text("Modifica") }
+            TextButton(onClick = { projectMessage = "Immagine" }) { Text("Immagine") }
+            TextButton(onClick = { projectMessage = "Livello" }) { Text("Livello") }
+
+            Spacer(Modifier.width(8.dp))
 
             Button(
                 onClick = {
-                    if (!isPlaying && currentFrame > 0) {
-                        currentFrame--
+                    selectedBrush = when (selectedBrush) {
+                        BrushType.PENCIL -> BrushType.HARD
+                        BrushType.HARD -> BrushType.SOFT
+                        BrushType.SOFT -> BrushType.MARKER
+                        BrushType.MARKER -> BrushType.PENCIL
                     }
-                }
-            ) {
-                Text("<")
-            }
-
-            Button(
-                onClick = {
-                    if (!isPlaying && currentFrame < frames.lastIndex) {
-                        currentFrame++
-                    }
-                }
-            ) {
-                Text(">")
-            }
-
-            Button(
-                onClick = {
-                    if (!isPlaying) {
-                        frames.add(mutableListOf())
-                        frameImageUris.add(null)
-                        currentFrame = frames.lastIndex
-                    }
-                }
-            ) {
-                Text("+ Fotogramma")
-            }
-
-            Button(
-                onClick = {
-                    if (!isPlaying) {
-                        val copy = frames[currentFrame]
-                            .map { stroke ->
-                                DrawStroke(
-                                    points = stroke.points.toList(),
-                                    color = stroke.color,
-                                    width = stroke.width,
-                                    opacity = stroke.opacity,
-                                    hardness = stroke.hardness,
-                                    brushType = stroke.brushType
-                                )
-                            }
-                            .toMutableList()
-
-                        frames.add(currentFrame + 1, copy)
-                        frameImageUris.add(
-                            currentFrame + 1,
-                            frameImageUris.getOrNull(currentFrame)
-                        )
-                        currentFrame += 1
-                    }
-                }
-            ) {
-                Text("⧉ Duplica")
-            }
-
-            Button(
-                onClick = {
-                    if (!isPlaying) {
-                        frames[currentFrame] = mutableListOf()
-                        activePoints = emptyList()
-                    }
-                }
-            ) {
-                Text("⌫ Pulisci")
-            }
-
-            Button(
-                onClick = {
-                    if (!isPlaying) {
-                        isEraser = false
-                    }
-                }
-            ) {
-                Text(if (!isEraser) "Penna ✓" else "Penna")
-            }
-
-            Button(
-                onClick = {
-                    if (!isPlaying) {
-                        selectedBrush = when (selectedBrush) {
-                            BrushType.PENCIL -> BrushType.HARD
-                            BrushType.HARD -> BrushType.SOFT
-                            BrushType.SOFT -> BrushType.MARKER
-                            BrushType.MARKER -> BrushType.PENCIL
-                        }
-                        isEraser = false
-                    }
+                    isEraser = false
                 }
             ) {
                 Text(
                     when (selectedBrush) {
                         BrushType.PENCIL -> "Matita"
                         BrushType.HARD -> "Duro"
-                        BrushType.SOFT -> "Morbido"
+                        BrushType.SOFT -> "Aerografo"
                         BrushType.MARKER -> "Marker"
                     }
                 )
             }
 
-            Button(
-                onClick = {
-                    if (!isPlaying) {
-                        isEraser = true
-                    }
-                }
-            ) {
-                Text(if (isEraser) "Gomma ✓" else "Gomma")
-            }
-
-            val paletteColors = listOf(
-                Color.Black,
-                Color(0xFF424242),
-                Color(0xFF795548),
-                Color(0xFFD32F2F),
-                Color(0xFFF57C00),
-                Color(0xFFFBC02D),
-                Color(0xFF388E3C),
-                Color(0xFF009688),
-                Color(0xFF1976D2),
-                Color(0xFF512DA8),
-                Color(0xFFC2185B),
-                Color.White
-            )
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                paletteColors.forEach { paletteColor ->
-                    Button(
-                        onClick = {
-                            if (!isPlaying) {
-                                selectedColor = paletteColor
-                                isEraser = false
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = paletteColor
-                        )
-                    ) {
-                        Text(
-                            text = if (selectedColor == paletteColor) "✓" else " ",
-                            color = if (
-                                paletteColor == Color.Black ||
-                                paletteColor == Color(0xFF424242) ||
-                                paletteColor == Color(0xFF512DA8)
-                            ) Color.White else Color.Black
-                        )
-                    }
-                }
-            }
-
-            Button(
-                onClick = {
-                    if (!isPlaying) {
-                        selectedWidth = when (selectedWidth) {
-                            4f -> 8f
-                            8f -> 16f
-                            else -> 4f
-                        }
-                        isEraser = false
-                    }
-                }
-            ) {
-                Text("Penna ${selectedWidth.toInt()}")
-            }
-
-            Column(
-                modifier = Modifier.width(180.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Intensità ${(selectedOpacity * 100).toInt()}%",
-                    color = Color.White
-                )
-
-                Slider(
-                    value = selectedOpacity,
-                    onValueChange = {
-                        selectedOpacity = it
-                    },
-                    valueRange = 0.05f..1f,
-                    enabled = !isPlaying
-                )
-            }
-
-            Column(
-                modifier = Modifier.width(180.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Dimensione ${selectedWidth.toInt()}",
-                    color = Color.White
-                )
-
+            Column(Modifier.width(130.dp)) {
+                Text("Dim ${selectedWidth.toInt()}", color = Color.White)
                 Slider(
                     value = selectedWidth,
-                    onValueChange = {
-                        selectedWidth = it
-                    },
-                    valueRange = 2f..40f,
-                    enabled = !isPlaying
+                    onValueChange = { selectedWidth = it },
+                    valueRange = 2f..40f
                 )
             }
 
-            Column(
-                modifier = Modifier.width(180.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Sfondo ${(backgroundOpacity * 100).toInt()}%",
-                    color = Color.White
+            Column(Modifier.width(130.dp)) {
+                Text("Opacità ${(selectedOpacity * 100).toInt()}%", color = Color.White)
+                Slider(
+                    value = selectedOpacity,
+                    onValueChange = { selectedOpacity = it },
+                    valueRange = 0.05f..1f
                 )
+            }
 
+            Column(Modifier.width(130.dp)) {
+                Text("Durezza ${(selectedHardness * 100).toInt()}%", color = Color.White)
+                Slider(
+                    value = selectedHardness,
+                    onValueChange = { selectedHardness = it },
+                    valueRange = 0f..1f
+                )
+            }
+
+            Column(Modifier.width(130.dp)) {
+                Text("Sfondo ${(backgroundOpacity * 100).toInt()}%", color = Color.White)
                 Slider(
                     value = backgroundOpacity,
                     onValueChange = {
                         backgroundOpacity = it
                         showReferenceImage = it > 0f
                     },
-                    valueRange = 0f..1f,
-                    enabled = !isPlaying
+                    valueRange = 0f..1f
                 )
             }
 
+            Button(onClick = { imagePicker.launch(arrayOf("image/*")) }) {
+                Text("Importa")
+            }
+
+            Button(
+                onClick = {
+                    gifSaver.launch("MiniAnimator_${System.currentTimeMillis()}.gif")
+                }
+            ) {
+                Text("GIF")
+            }
+        }
+
+        Row(modifier = Modifier.weight(1f)) {
             Column(
-                modifier = Modifier.width(180.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Durezza ${(selectedHardness * 100).toInt()}%",
-                    color = Color.White
-                )
-
-                Slider(
-                    value = selectedHardness,
-                    onValueChange = {
-                        selectedHardness = it
-                    },
-                    valueRange = 0f..1f,
-                    enabled = !isPlaying
-                )
-            }
-
-            Button(
-                onClick = {
-                    if (!isPlaying) {
-                        imagePicker.launch(arrayOf("image/*"))
-                    }
-                }
-            ) {
-                Text("📷 Importa")
-            }
-
-        Button(
-                onClick = {
-                    if (!isPlaying) {
-                        showReferenceImage = !showReferenceImage
-                    }
-                }
-            ) {
-                Text(if (showReferenceImage) "Sfondo ON" else "Sfondo OFF")
-            }
-
-            Button(
-                onClick = {
-                    if (!isPlaying) {
-                        saveProject()
-                    }
-                }
-            ) {
-                Text("💾 Salva")
-            }
-
-            Button(
-                onClick = {
-                    if (!isPlaying) {
-                        loadProject()
-                    }
-                }
-            ) {
-                Text("📂 Carica")
-            }
-
-            Button(
-                onClick = {
-                    if (!isPlaying) {
-                        gifSaver.launch(
-                            "MiniAnimator_${System.currentTimeMillis()}.gif"
-                        )
-                    }
-                }
-            ) {
-                Text("🎞 GIF")
-            }
-
-            Button(
-                onClick = {
-                    if (!isPlaying) {
-                        showNewAnimationDialog = true
-                    }
-                }
-            ) {
-                Text("＋ Nuova")
-            }
-        }
-
-        Text(
-            text = "Fotogramma ${currentFrame + 1} / ${frames.size}",
-            color = Color.White,
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .zIndex(2f)
-                .background(Color(0xAA202124))
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-        )
-
-        if (projectMessage.isNotBlank()) {
-            Text(
-                text = projectMessage,
-                color = Color.White,
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .zIndex(2f)
-                    .background(Color(0xAA202124))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            )
-        }
+                    .width(70.dp)
+                    .fillMaxHeight()
+                    .background(Color(0xFF202020))
+                    .padding(5.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                Button(
+                    onClick = { isEraser = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (!isEraser) Color(0xFF3C5F84) else Color(0xFF3A3A3A)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("B") }
 
-        if (showNewAnimationDialog) {
-            androidx.compose.material3.AlertDialog(
-                onDismissRequest = {
-                    showNewAnimationDialog = false
-                },
-                title = {
-                    Text("Nuova animazione")
-                },
-                text = {
-                    Text("Vuoi cancellare tutti i fotogrammi e iniziare una nuova animazione?")
-                },
-                confirmButton = {
-                    androidx.compose.material3.TextButton(
-                        onClick = {
-                            frames.clear()
-                            frameImageUris.clear()
-                            frames.add(mutableListOf())
-                            frameImageUris.add(null)
-                            currentFrame = 0
+                Button(
+                    onClick = { isEraser = true },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isEraser) Color(0xFF3C5F84) else Color(0xFF3A3A3A)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("E") }
+
+                Button(
+                    onClick = {
+                        if (!isPlaying) {
+                            frames[currentFrame] = mutableListOf()
                             activePoints = emptyList()
-                            isPlaying = false
-                            isEraser = false
-                            showNewAnimationDialog = false
                         }
-                    ) {
-                        Text("＋ Nuova")
-                    }
-                },
-                dismissButton = {
-                    androidx.compose.material3.TextButton(
-                        onClick = {
-                            showNewAnimationDialog = false
-                        }
-                    ) {
-                        Text("Annulla")
-                    }
-                }
-            )
-        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("C") }
 
-        val currentImageUri = frameImageUris.getOrNull(currentFrame)
-        val currentBackgroundImage = remember(currentImageUri) {
-            currentImageUri?.let { uriString ->
-                try {
-                    context.contentResolver.openInputStream(
-                        android.net.Uri.parse(uriString)
-                    )?.use { input ->
-                        BitmapFactory.decodeStream(input)?.asImageBitmap()
-                    }
-                } catch (_: Exception) {
-                    null
-                }
+                Button(
+                    onClick = { if (!isPlaying) saveProject() },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("S") }
+
+                Button(
+                    onClick = { if (!isPlaying) loadProject() },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("L") }
             }
-        }
 
-        Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .onSizeChanged { canvasSize = it }
-                .background(Color.White)
-                .border(2.dp, Color.Gray)
-                .pointerInput(currentFrame, isPlaying) {
-                    if (!isPlaying) {
-                        detectDragGestures(
-                            onDragStart = { position ->
-                                activePoints = listOf(position)
-                            },
-                            onDrag = { change, _ ->
-                                activePoints = activePoints + change.position
-                            },
-                            onDragEnd = {
-                                if (activePoints.size > 1) {
-                                    frames[currentFrame] =
-                                        (frames[currentFrame] + DrawStroke(
+            Column(modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .background(Color(0xFF101010))
+                        .padding(12.dp)
+                ) {
+                    val currentImageUri = frameImageUris.getOrNull(currentFrame)
+                    val currentBackgroundImage = remember(currentImageUri) {
+                        currentImageUri?.let { uriString ->
+                            try {
+                                context.contentResolver.openInputStream(
+                                    android.net.Uri.parse(uriString)
+                                )?.use { input ->
+                                    BitmapFactory.decodeStream(input)?.asImageBitmap()
+                                }
+                            } catch (_: Exception) {
+                                null
+                            }
+                        }
+                    }
+
+                    Canvas(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .onSizeChanged { canvasSize = it }
+                            .background(Color.White)
+                            .border(1.dp, Color.Gray)
+                            .pointerInput(
+                                currentFrame,
+                                isPlaying,
+                                isEraser,
+                                selectedColor,
+                                selectedWidth,
+                                selectedOpacity,
+                                selectedHardness,
+                                selectedBrush
+                            ) {
+                                if (!isPlaying) {
+                                    detectDragGestures(
+                                        onDragStart = { position ->
+                                            activePoints = listOf(position)
+                                        },
+                                        onDrag = { change, _ ->
+                                            activePoints = activePoints + change.position
+                                        },
+                                        onDragEnd = {
+                                            if (activePoints.size > 1) {
+                                                frames[currentFrame] =
+                                                    (frames[currentFrame] + DrawStroke(
+                                                        points = activePoints,
+                                                        color = if (isEraser) Color.White else selectedColor,
+                                                        width = if (isEraser) 30f else selectedWidth,
+                                                        opacity = if (isEraser) 1f else selectedOpacity,
+                                                        hardness = if (isEraser) 1f else selectedHardness,
+                                                        brushType = if (isEraser) BrushType.HARD else selectedBrush
+                                                    )).toMutableList()
+                                            }
+                                            activePoints = emptyList()
+                                        },
+                                        onDragCancel = { activePoints = emptyList() }
+                                    )
+                                }
+                            }
+                    ) {
+                        fun drawStroke(stroke: DrawStroke) {
+                            if (stroke.points.size < 2) return
+
+                            val path = Path().apply {
+                                moveTo(stroke.points.first().x, stroke.points.first().y)
+                                stroke.points.drop(1).forEach { point ->
+                                    lineTo(point.x, point.y)
+                                }
+                            }
+
+                            when (stroke.brushType) {
+                                BrushType.PENCIL -> drawPath(
+                                    path = path,
+                                    color = stroke.color.copy(
+                                        alpha = (stroke.opacity * 0.85f).coerceIn(0f, 1f)
+                                    ),
+                                    style = Stroke(
+                                        width = (stroke.width * 0.55f).coerceAtLeast(1f),
+                                        cap = StrokeCap.Round,
+                                        join = StrokeJoin.Round
+                                    )
+                                )
+
+                                BrushType.HARD -> drawPath(
+                                    path = path,
+                                    color = stroke.color.copy(
+                                        alpha = stroke.opacity.coerceIn(0f, 1f)
+                                    ),
+                                    style = Stroke(
+                                        width = stroke.width,
+                                        cap = StrokeCap.Round,
+                                        join = StrokeJoin.Round
+                                    )
+                                )
+
+                                BrushType.SOFT -> {
+                                    val h = stroke.hardness.coerceIn(0f, 1f)
+                                    drawPath(
+                                        path = path,
+                                        color = stroke.color.copy(
+                                            alpha = (stroke.opacity * 0.18f * (1f - h * 0.5f))
+                                                .coerceIn(0f, 1f)
+                                        ),
+                                        style = Stroke(
+                                            width = stroke.width * 2.2f,
+                                            cap = StrokeCap.Round,
+                                            join = StrokeJoin.Round
+                                        )
+                                    )
+                                    drawPath(
+                                        path = path,
+                                        color = stroke.color.copy(
+                                            alpha = (stroke.opacity * 0.55f).coerceIn(0f, 1f)
+                                        ),
+                                        style = Stroke(
+                                            width = stroke.width,
+                                            cap = StrokeCap.Round,
+                                            join = StrokeJoin.Round
+                                        )
+                                    )
+                                }
+
+                                BrushType.MARKER -> drawPath(
+                                    path = path,
+                                    color = stroke.color.copy(
+                                        alpha = (stroke.opacity * 0.55f).coerceIn(0f, 1f)
+                                    ),
+                                    style = Stroke(
+                                        width = stroke.width * 1.4f,
+                                        cap = StrokeCap.Round,
+                                        join = StrokeJoin.Round
+                                    )
+                                )
+                            }
+                        }
+
+                        if (showReferenceImage) {
+                            currentBackgroundImage?.let { image ->
+                                drawImage(
+                                    image = image,
+                                    dstSize = IntSize(
+                                        size.width.toInt(),
+                                        size.height.toInt()
+                                    ),
+                                    alpha = backgroundOpacity.coerceIn(0f, 1f)
+                                )
+                            }
+                        }
+
+                        frames[currentFrame].forEach { stroke ->
+                            drawStroke(stroke)
+                        }
+
+                        if (activePoints.size > 1) {
+                            drawStroke(
+                                DrawStroke(
                                     points = activePoints,
                                     color = if (isEraser) Color.White else selectedColor,
                                     width = if (isEraser) 30f else selectedWidth,
                                     opacity = if (isEraser) 1f else selectedOpacity,
                                     hardness = if (isEraser) 1f else selectedHardness,
                                     brushType = if (isEraser) BrushType.HARD else selectedBrush
-                                ))
-                                            .toMutableList()
-                                }
-                                activePoints = emptyList()
-                            },
-                            onDragCancel = {
-                                activePoints = emptyList()
+                                )
+                            )
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(82.dp)
+                        .background(Color(0xFF252525))
+                        .horizontalScroll(rememberScrollState())
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            if (frames.size > 1) isPlaying = !isPlaying
+                        }
+                    ) {
+                        Text(if (isPlaying) "Stop" else "Play")
+                    }
+
+                    Button(
+                        onClick = {
+                            if (!isPlaying) {
+                                frames.add(mutableListOf())
+                                frameImageUris.add(null)
+                                currentFrame = frames.lastIndex
                             }
-                        )
-                    }
-                }
-        ) {
-            fun drawStroke(stroke: DrawStroke) {
-                if (stroke.points.size < 2) return
+                        }
+                    ) { Text("+ Frame") }
 
-                val path = Path().apply {
-                    moveTo(stroke.points.first().x, stroke.points.first().y)
-                    stroke.points.drop(1).forEach { point ->
-                        lineTo(point.x, point.y)
-                    }
-                }
+                    Button(
+                        onClick = {
+                            if (!isPlaying) {
+                                val copy = frames[currentFrame]
+                                    .map { stroke ->
+                                        DrawStroke(
+                                            points = stroke.points.toList(),
+                                            color = stroke.color,
+                                            width = stroke.width,
+                                            opacity = stroke.opacity,
+                                            hardness = stroke.hardness,
+                                            brushType = stroke.brushType
+                                        )
+                                    }
+                                    .toMutableList()
 
-                when (stroke.brushType) {
+                                frames.add(currentFrame + 1, copy)
+                                frameImageUris.add(
+                                    currentFrame + 1,
+                                    frameImageUris.getOrNull(currentFrame)
+                                )
+                                currentFrame += 1
+                            }
+                        }
+                    ) { Text("Duplica") }
 
-                    BrushType.PENCIL -> {
-                        drawPath(
-                            path = path,
-                            color = stroke.color.copy(
-                                alpha = (stroke.opacity * 0.85f).coerceIn(0f, 1f)
-                            ),
-                            style = Stroke(
-                                width = (stroke.width * 0.55f).coerceAtLeast(1f),
-                                cap = StrokeCap.Round,
-                                join = StrokeJoin.Round
-                            )
-                        )
-                    }
-
-                    BrushType.HARD -> {
-                        drawPath(
-                            path = path,
-                            color = stroke.color.copy(
-                                alpha = stroke.opacity.coerceIn(0f, 1f)
-                            ),
-                            style = Stroke(
-                                width = stroke.width,
-                                cap = StrokeCap.Round,
-                                join = StrokeJoin.Round
-                            )
-                        )
-                    }
-
-                    BrushType.SOFT -> {
-                        val hardness = stroke.hardness.coerceIn(0f, 1f)
-
-                        drawPath(
-                            path = path,
-                            color = stroke.color.copy(
-                                alpha = (stroke.opacity * 0.18f * (1f - hardness * 0.5f))
-                                    .coerceIn(0f, 1f)
-                            ),
-                            style = Stroke(
-                                width = stroke.width * 2.2f,
-                                cap = StrokeCap.Round,
-                                join = StrokeJoin.Round
-                            )
-                        )
-
-                        drawPath(
-                            path = path,
-                            color = stroke.color.copy(
-                                alpha = (stroke.opacity * 0.55f).coerceIn(0f, 1f)
-                            ),
-                            style = Stroke(
-                                width = stroke.width,
-                                cap = StrokeCap.Round,
-                                join = StrokeJoin.Round
-                            )
-                        )
-                    }
-
-                    BrushType.MARKER -> {
-                        drawPath(
-                            path = path,
-                            color = stroke.color.copy(
-                                alpha = (stroke.opacity * 0.55f).coerceIn(0f, 1f)
-                            ),
-                            style = Stroke(
-                                width = stroke.width * 1.4f,
-                                cap = StrokeCap.Round,
-                                join = StrokeJoin.Round
-                            )
-                        )
+                    frames.indices.forEach { index ->
+                        Box(
+                            modifier = Modifier
+                                .width(62.dp)
+                                .height(50.dp)
+                                .background(
+                                    if (index == currentFrame) Color(0xFF3C5F84) else Color(0xFF444444),
+                                    RoundedCornerShape(4.dp)
+                                )
+                                .clickable {
+                                    if (!isPlaying) currentFrame = index
+                                }
+                                .padding(4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("${index + 1}", color = Color.White)
+                        }
                     }
                 }
             }
 
-            if (showReferenceImage) {
-                currentBackgroundImage?.let { image ->
-                    drawImage(
-                        image = image,
-                        dstSize = IntSize(
-                            size.width.toInt(),
-                            size.height.toInt()
-                        ),
-                        alpha = backgroundOpacity.coerceIn(0f, 1f)
-                    )
-                }
-            }
+            Column(
+                modifier = Modifier
+                    .width(260.dp)
+                    .fillMaxHeight()
+                    .background(Color(0xFF2A2A2A))
+                    .padding(8.dp)
+            ) {
+                Text("COLORE", color = Color.LightGray)
 
-            frames[currentFrame].forEach { stroke ->
-                drawStroke(stroke)
-            }
-
-            if (activePoints.size > 1) {
-                drawStroke(
-                    DrawStroke(
-                        points = activePoints,
-                        color = if (isEraser) Color.White else selectedColor,
-                        width = if (isEraser) 30f else selectedWidth,
-                        opacity = if (isEraser) 1f else selectedOpacity,
-                        hardness = if (isEraser) 1f else selectedHardness,
-                        brushType = if (isEraser) BrushType.HARD else selectedBrush
-                    )
+                val paletteColors = listOf(
+                    Color.Black,
+                    Color(0xFF424242),
+                    Color(0xFF795548),
+                    Color(0xFFD32F2F),
+                    Color(0xFFF57C00),
+                    Color(0xFFFBC02D),
+                    Color(0xFF388E3C),
+                    Color(0xFF009688),
+                    Color(0xFF1976D2),
+                    Color(0xFF512DA8),
+                    Color(0xFFC2185B),
+                    Color.White
                 )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    paletteColors.forEach { c ->
+                        Box(
+                            modifier = Modifier
+                                .width(28.dp)
+                                .height(28.dp)
+                                .background(c, RoundedCornerShape(3.dp))
+                                .border(
+                                    if (selectedColor == c) 3.dp else 1.dp,
+                                    if (selectedColor == c) Color.White else Color.DarkGray,
+                                    RoundedCornerShape(3.dp)
+                                )
+                                .clickable {
+                                    selectedColor = c
+                                    isEraser = false
+                                }
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+                Text("LIVELLI", color = Color.LightGray)
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF3C4652), RoundedCornerShape(4.dp))
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("●", color = Color(0xFF80CBC4), modifier = Modifier.width(30.dp))
+                    Text("Livello disegno", color = Color.White)
+                }
+
+                Spacer(Modifier.height(10.dp))
+                Text("PROPRIETÀ", color = Color.LightGray)
+                Text("Frame ${currentFrame + 1}/${frames.size}", color = Color.White)
+                Text(
+                    if (isEraser) "Strumento: Gomma" else "Strumento: Pennello",
+                    color = Color.White
+                )
+
+                Spacer(Modifier.weight(1f))
+
+                if (projectMessage.isNotBlank()) {
+                    Text(projectMessage, color = Color(0xFF80CBC4))
+                }
             }
         }
     }

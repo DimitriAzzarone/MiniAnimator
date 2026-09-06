@@ -10,7 +10,18 @@
 button,input{font:inherit}button{background:#303030;color:#eee;border:1px solid #505050;border-radius:2px;padding:5px 8px}
 button.active{background:#365c73}#app{height:100%;display:grid;grid-template-rows:30px 38px 1fr 112px}
 #menu{display:flex;align-items:center;background:#202020;border-bottom:1px solid #333;padding:0 8px;gap:2px}
-#brand{font-weight:700;margin-right:14px}.menu{padding:7px 8px}.menu:hover{background:#333}
+#brand{font-weight:700;margin-right:14px}
+.menuwrap{position:relative;height:100%;display:flex;align-items:center}
+.menu{padding:7px 8px;cursor:pointer;user-select:none}
+.menu:hover,.menuwrap.open>.menu{background:#333}
+.dropdown{display:none;position:absolute;top:29px;left:0;min-width:210px;background:#2b2b2b;border:1px solid #4a4a4a;box-shadow:0 8px 22px #0009;z-index:9999;padding:4px 0}
+.menuwrap.open .dropdown{display:block}
+.dropitem{padding:7px 28px 7px 12px;white-space:nowrap;cursor:pointer;color:#eee;display:flex;justify-content:space-between;gap:20px}
+.dropitem:hover{background:#3b5a6e}
+.dropitem.disabled{color:#777;pointer-events:none}
+.sep{height:1px;background:#444;margin:4px 0}
+.shortcut{color:#aaa}
+
 #opts{display:flex;align-items:center;gap:12px;padding:4px 8px;background:#292929;border-bottom:1px solid #3a3a3a;white-space:nowrap}
 .opt{display:flex;align-items:center;gap:5px}.opt input{width:100px}
 #work{display:grid;grid-template-columns:44px 1fr 250px;min-height:0}
@@ -31,7 +42,70 @@ h1{font-size:52px;margin:12px 0 24px}.actions{display:flex;gap:10px}.big{padding
 </head>
 <body>
 <div id="app">
- <div id="menu"><b id="brand">MiniAnimator</b><span class="menu" onclick="showHome()">File</span><span class="menu" onclick="undo()">Modifica</span><span class="menu">Immagine</span><span class="menu">Livello</span><span class="menu">Selezione</span><span class="menu">Filtro</span><span class="menu">Visualizza</span><span class="menu">Finestra</span></div>
+ <div id="menu">
+  <b id="brand">MiniAnimator</b>
+  <div class="menuwrap"><span class="menu">File</span><div class="dropdown">
+    <div class="dropitem" onclick="newProject();closeMenus()">Nuovo progetto <span class="shortcut">Ctrl+N</span></div>
+    <div class="dropitem" onclick="openImg.click();closeMenus()">Apri immagine… <span class="shortcut">Ctrl+O</span></div>
+    <div class="dropitem" onclick="loadProject();closeMenus()">Apri progetto</div>
+    <div class="sep"></div>
+    <div class="dropitem" onclick="saveProject();closeMenus()">Salva progetto <span class="shortcut">Ctrl+S</span></div>
+    <div class="dropitem" onclick="exportPNG();closeMenus()">Esporta PNG…</div>
+    <div class="sep"></div>
+    <div class="dropitem" onclick="showHome();closeMenus()">Home</div>
+  </div></div>
+
+  <div class="menuwrap"><span class="menu">Modifica</span><div class="dropdown">
+    <div class="dropitem" onclick="undo();closeMenus()">Annulla <span class="shortcut">Ctrl+Z</span></div>
+    <div class="dropitem" onclick="clearLayer();closeMenus()">Cancella livello</div>
+    <div class="sep"></div>
+    <div class="dropitem" onclick="dupLayer();closeMenus()">Duplica livello</div>
+  </div></div>
+
+  <div class="menuwrap"><span class="menu">Immagine</span><div class="dropdown">
+    <div class="dropitem" onclick="resizeCanvasPrompt();closeMenus()">Dimensione quadro…</div>
+    <div class="dropitem" onclick="flipCanvas('h');closeMenus()">Rifletti orizzontale</div>
+    <div class="dropitem" onclick="flipCanvas('v');closeMenus()">Rifletti verticale</div>
+  </div></div>
+
+  <div class="menuwrap"><span class="menu">Livello</span><div class="dropdown">
+    <div class="dropitem" onclick="addLayer();closeMenus()">Nuovo livello</div>
+    <div class="dropitem" onclick="dupLayer();closeMenus()">Duplica livello</div>
+    <div class="dropitem" onclick="delLayer();closeMenus()">Elimina livello</div>
+    <div class="sep"></div>
+    <div class="dropitem" onclick="moveLayer(1);closeMenus()">Porta sopra</div>
+    <div class="dropitem" onclick="moveLayer(-1);closeMenus()">Porta sotto</div>
+    <div class="dropitem" onclick="toggleLayerVisibility();closeMenus()">Mostra / nascondi</div>
+  </div></div>
+
+  <div class="menuwrap"><span class="menu">Selezione</span><div class="dropdown">
+    <div class="dropitem disabled">Seleziona tutto</div>
+    <div class="dropitem disabled">Deseleziona</div>
+    <div class="dropitem disabled">Inverti selezione</div>
+  </div></div>
+
+  <div class="menuwrap"><span class="menu">Filtro</span><div class="dropdown">
+    <div class="dropitem" onclick="applyFilter('grayscale(1)');closeMenus()">Bianco e nero</div>
+    <div class="dropitem" onclick="applyFilter('sepia(1)');closeMenus()">Seppia</div>
+    <div class="dropitem" onclick="applyFilter('blur(2px)');closeMenus()">Sfocatura leggera</div>
+    <div class="dropitem" onclick="applyFilter('contrast(1.25)');closeMenus()">Più contrasto</div>
+  </div></div>
+
+  <div class="menuwrap"><span class="menu">Visualizza</span><div class="dropdown">
+    <div class="dropitem" onclick="zoomCanvas(1.1);closeMenus()">Zoom +</div>
+    <div class="dropitem" onclick="zoomCanvas(0.9);closeMenus()">Zoom −</div>
+    <div class="dropitem" onclick="zoomReset();closeMenus()">100%</div>
+    <div class="sep"></div>
+    <div class="dropitem" onclick="toggleTimeline();closeMenus()">Mostra / nascondi timeline</div>
+    <div class="dropitem" onclick="toggleRightPanel();closeMenus()">Mostra / nascondi pannelli</div>
+  </div></div>
+
+  <div class="menuwrap"><span class="menu">Finestra</span><div class="dropdown">
+    <div class="dropitem" onclick="toggleRightPanel();closeMenus()">Pannelli laterali</div>
+    <div class="dropitem" onclick="toggleTimeline();closeMenus()">Timeline</div>
+    <div class="dropitem" onclick="showHome();closeMenus()">Schermata iniziale</div>
+  </div></div>
+ </div>
  <div id="opts">
   <div class="opt">Strumento <b id="toolName">Pennello</b></div>
   <div class="opt">Dim <span id="sv">8</span><input id="size" type="range" min="1" max="80" value="8"></div>
@@ -67,7 +141,55 @@ function setTool(t){tool=t;toolName.textContent={brush:'Pennello',eraser:'Gomma'
 document.querySelectorAll('.tool').forEach(b=>b.onclick=()=>setTool(b.dataset.t));
 size.oninput=e=>{window.size=+e.target.value;sv.textContent=e.target.value};op.oninput=e=>{window.op=+e.target.value/100;ov.textContent=e.target.value}
 function p(e){let r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height}}
-c.onpointerdown=e=>{let q=p(e);if(tool==='fill'){snap();let z=lc(l()).getContext('2d');z.globalAlpha=op;z.fillStyle=color;z.fillRect(0,0,c.width,c.height);z.globalAlpha=1;render();return}if(tool==='eyedropper'){let d=x.getImageData(q.x,q.y,1,1).data;color=`rgb(${d[0]},${d[1]},${d[2]})`;colors();return}if(tool==='text'){let t=prompt('Testo:');if(t){snap();let z=lc(l()).getContext('2d');z.globalAlpha=op;z.fillStyle=color;z.font='36px Arial';z.fillText(t,q.x,q.y);z.globalAlpha=1;render()}return}if(tool!=='brush'&&tool!=='eraser')return;snap();down=true;last=q;c.setPointerCapture(e.pointerId)}
+c.onpointerdown=e=>{let q=p(e);if(tool==='fill'){snap();let z=lc(l()).getContext('2d');z.globalAlpha=op;z.fillStyle=color;z.fillRect(0,0,c.width,c.height);z.globalAlpha=1;render();return}if(tool==='eyedropper'){let d=x.getImageData(q.x,q.y,1,1).data;color=`rgb(${d[0]},${d[1]},${d[2]})`;
+function closeMenus(){document.querySelectorAll('.menuwrap').forEach(m=>m.classList.remove('open'))}
+document.querySelectorAll('.menuwrap>.menu').forEach(m=>{
+  m.onclick=e=>{e.stopPropagation();const w=m.parentElement,was=w.classList.contains('open');closeMenus();if(!was)w.classList.add('open')}
+});
+document.addEventListener('click',closeMenus);
+
+function clearLayer(){snap();const cv=lc(l()),z=cv.getContext('2d');z.clearRect(0,0,cv.width,cv.height);all()}
+function toggleLayerVisibility(){l().visible=!l().visible;all()}
+
+function resizeCanvasPrompt(){
+  const w=parseInt(prompt('Larghezza quadro:',c.width),10),h=parseInt(prompt('Altezza quadro:',c.height),10);
+  if(!w||!h||w<32||h<32)return;
+  frames.forEach(fr=>fr.layers.forEach(layer=>{
+    if(layer.cv){const old=layer.cv,n=document.createElement('canvas');n.width=w;n.height=h;n.getContext('2d').drawImage(old,0,0);layer.cv=n}
+  }));
+  c.width=w;c.height=h;all()
+}
+function flipCanvas(dir){
+  const a=l();if(!a.cv)return;snap();
+  const old=a.cv,n=document.createElement('canvas');n.width=old.width;n.height=old.height;
+  const z=n.getContext('2d');z.save();
+  if(dir==='h'){z.translate(n.width,0);z.scale(-1,1)}else{z.translate(0,n.height);z.scale(1,-1)}
+  z.drawImage(old,0,0);z.restore();a.cv=n;all()
+}
+function applyFilter(filter){
+  const a=l();if(!a.cv)return;snap();
+  const old=a.cv,n=document.createElement('canvas');n.width=old.width;n.height=old.height;
+  const z=n.getContext('2d');z.filter=filter;z.drawImage(old,0,0);z.filter='none';a.cv=n;all()
+}
+let canvasZoom=1;
+function applyZoom(){const w=document.getElementById('wrap');w.style.transform=`scale(${canvasZoom})`;w.style.transformOrigin='center center'}
+function zoomCanvas(fac){canvasZoom=Math.max(.25,Math.min(4,canvasZoom*fac));applyZoom()}
+function zoomReset(){canvasZoom=1;applyZoom()}
+function toggleTimeline(){const t=document.getElementById('timeline');t.style.display=t.style.display==='none'?'grid':'none'}
+function toggleRightPanel(){
+  const r=document.getElementById('right'),w=document.getElementById('work');
+  const hide=r.style.display!=='none';r.style.display=hide?'none':'block';w.style.gridTemplateColumns=hide?'44px 1fr':'44px 1fr 250px'
+}
+document.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  if(e.ctrlKey&&k==='n'){e.preventDefault();newProject()}
+  if(e.ctrlKey&&k==='o'){e.preventDefault();openImg.click()}
+  if(e.ctrlKey&&k==='s'){e.preventDefault();saveProject()}
+  if(e.ctrlKey&&k==='z'){e.preventDefault();undo()}
+  if(e.key==='Escape')closeMenus()
+});
+
+colors();return}if(tool==='text'){let t=prompt('Testo:');if(t){snap();let z=lc(l()).getContext('2d');z.globalAlpha=op;z.fillStyle=color;z.font='36px Arial';z.fillText(t,q.x,q.y);z.globalAlpha=1;render()}return}if(tool!=='brush'&&tool!=='eraser')return;snap();down=true;last=q;c.setPointerCapture(e.pointerId)}
 c.onpointermove=e=>{if(!down)return;let q=p(e),z=lc(l()).getContext('2d');z.save();z.lineCap='round';z.lineJoin='round';z.lineWidth=size;z.globalAlpha=op;if(tool==='eraser'){z.globalCompositeOperation='destination-out';z.strokeStyle='#000'}else{z.globalCompositeOperation='source-over';z.strokeStyle=color}z.beginPath();z.moveTo(last.x,last.y);z.lineTo(q.x,q.y);z.stroke();z.restore();last=q;render()}
 c.onpointerup=c.onpointercancel=()=>{down=false;last=null;frameUI()}
 function colors(){colors.innerHTML='';pal.forEach(a=>{let d=document.createElement('div');d.className='sw'+(a===color?' sel':'');d.style.background=a;d.onclick=()=>{color=a;setTool('brush');colors()};document.getElementById('colors').appendChild(d)})}

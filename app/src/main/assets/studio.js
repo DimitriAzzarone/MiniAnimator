@@ -24,7 +24,8 @@ function cel(f,l,writable=false){const data=f.cels[l.id]||null,k=key(f,l);let en
 async function ensureFrame(index){await Promise.all(project.layers.map(l=>cel(project.frames[index],l).promise));}
 function composite(target,index,background=true){target.clearRect(0,0,project.width,project.height);if(background&&project.background!=='transparent'){target.fillStyle=project.background;target.fillRect(0,0,project.width,project.height);}for(const l of project.layers){const entry=cel(project.frames[index],l);if(!l.visible||l.opacity===0||!entry.ready)continue;target.save();target.globalAlpha=l.opacity;target.drawImage(entry.cv,0,0);target.restore();}}
 function buffer(){const cv=document.createElement('canvas');cv.width=project.width;cv.height=project.height;return cv;}
-function tintedFrame(index,tint){const cv=buffer(),c=cv.getContext('2d');composite(c,index,false);c.globalCompositeOperation='source-in';c.fillStyle=tint;c.fillRect(0,0,cv.width,cv.height);return cv;}
+const onionCache=new Map();
+function tintedFrame(index,tint){const key=index+':'+tint+':'+revision;if(onionCache.has(key))return onionCache.get(key);const cv=buffer(),c=cv.getContext('2d');composite(c,index,false);c.globalCompositeOperation='source-in';c.fillStyle=tint;c.fillRect(0,0,cv.width,cv.height);onionCache.set(key,cv);while(onionCache.size>4){const first=onionCache.keys().next().value,old=onionCache.get(first);old.width=1;old.height=1;onionCache.delete(first);}return cv;}
 async function render(){const generation=++renderGeneration;loading=true;try{await ensureFrame(fi);if(onion&&!playing){if(fi>0)await ensureFrame(fi-1);if(fi+1<project.frames.length)await ensureFrame(fi+1);}if(generation!==renderGeneration)return;loading=false;
  if(canvas.width!==project.width||canvas.height!==project.height){canvas.width=project.width;canvas.height=project.height;applyZoom();}
  ctx.clearRect(0,0,canvas.width,canvas.height);if(project.background!=='transparent'){ctx.fillStyle=project.background;ctx.fillRect(0,0,canvas.width,canvas.height);}
@@ -63,7 +64,7 @@ canvas.addEventListener('pointerdown',async event=>{event.preventDefault();if(ex
  }catch(e){stroke=null;toast(e.message);}
 });
 canvas.addEventListener('pointermove',event=>{if(!pointers.has(event.pointerId))return;pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});if(pinch&&pointers.size>=2){const a=[...pointers.values()];setZoom(pinch.zoom*Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)/Math.max(1,pinch.distance));return;}if(!stroke)return;if(stroke.pan){viewport.scrollLeft=stroke.scroll.x-(event.clientX-stroke.start.x);viewport.scrollTop=stroke.scroll.y-(event.clientY-stroke.start.y);return;}if(event.pointerId!==stroke.pointerId)return;
- for(const e of event.getCoalescedEvents?event.getCoalescedEvents():[event]){const q=point(e);if(['brush','pencil','eraser'].includes(tool))strokeSegment(stroke.entry,stroke.last,q,e);stroke.last=q;}render();
+ for(const e of (event.getCoalescedEvents?.().length?event.getCoalescedEvents():[event])){const q=point(e);if(['brush','pencil','eraser'].includes(tool))strokeSegment(stroke.entry,stroke.last,q,e);stroke.last=q;}render();
 });
 function finishStroke(event,cancel=false){pointers.delete(event.pointerId);if(pointers.size<2)pinch=null;if(!stroke)return;if(stroke.pan){stroke=null;return;}if(event.pointerId!==stroke.pointerId)return;if(cancel){cancelStroke();return;}const entry=stroke.entry;if(['line','rectangle','ellipse'].includes(tool)){const c=entry.cv.getContext('2d');c.save();c.globalAlpha=opacity;shape(c,stroke.start,stroke.last);c.restore();}stroke=null;commitCel(entry);}
 canvas.addEventListener('pointerup',e=>finishStroke(e));canvas.addEventListener('pointercancel',e=>finishStroke(e,true));

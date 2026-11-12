@@ -10,7 +10,7 @@ function validate(raw){
  if(!raw||!Array.isArray(raw.frames)||!raw.frames.length||raw.frames.length>240)throw Error('Progetto non valido: da 1 a 240 fotogrammi.');
  if(raw.version===4){
   if(!Array.isArray(raw.layers)||!raw.layers.length||raw.layers.length>24)throw Error('Da 1 a 24 livelli.');
-  if(+raw.width<64||+raw.height<64||+raw.width*+raw.height>2073600)throw Error('Formato del progetto non valido.');
+  if(!Number.isFinite(+raw.width)||!Number.isFinite(+raw.height)||+raw.width<64||+raw.height<64||+raw.width*+raw.height>2073600)throw Error('Formato del progetto non valido.');
   const p=create(raw);p.layers=raw.layers.map((v,i)=>({id:String(v.id||id()),name:String(v.name||'Livello '+(i+1)).slice(0,80),visible:v.visible!==false,locked:!!v.locked,opacity:clamp(v.opacity,0,1,1)}));
   if(new Set(p.layers.map(x=>x.id)).size!==p.layers.length)throw Error('Identificativi dei livelli duplicati.');
   const allowed=new Set(p.layers.map(x=>x.id));

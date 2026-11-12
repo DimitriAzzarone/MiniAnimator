@@ -1,0 +1,12 @@
+{
+  "name": "minianimator-studio-checks",
+  "private": true,
+  "scripts": {
+    "test": "node tests/model.test.cjs && node tests/pixels.test.cjs && node tests/editor.integration.cjs"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^1.1.1",
+    "fake-indexeddb": "^6.2.8",
+    "jsdom": "^31.0.0"
+  }
+}

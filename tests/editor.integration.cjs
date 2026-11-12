@@ -13,7 +13,7 @@ w.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');
 Object.defineProperty(w.document.getElementById('viewport'),'clientWidth',{value:1000});Object.defineProperty(w.document.getElementById('viewport'),'clientHeight',{value:600});
 const exported=[];w.Android={saveBase64:(name,mime,data)=>{exported.push({name,mime,data});w.onNativeExport(true,'ok');},saveProject:(name,data)=>{exported.push({name,data});w.onNativeExport(true,'ok');},exportGif:(name,data)=>{exported.push({name,data});w.onNativeExport(true,'ok');}};
 for(const name of ['model.js','pixels.js'])w.eval(fs.readFileSync(path.join(assets,name),'utf8'));
-w.eval(fs.readFileSync(path.join(assets,'studio.js'),'utf8')+'\nwindow.TEST={actions,getProject:()=>project,setTool,setColor,selectFrame,render,ensureFrame,buffer,composite,exportFile,getHistory:()=>history};');
+w.eval(fs.readFileSync(path.join(assets,'studio.js'),'utf8')+'\nwindow.TEST={actions,getProject:()=>project,setTool,setColor,selectFrame,render,ensureFrame,buffer,composite,exportFile,getHistory:()=>history,autosave};');
 const wait=(ms=30)=>new Promise(r=>setTimeout(r,ms));
 function pointer(type,x,y,id=1){const c=w.document.getElementById('canvas'),p=w.TEST.getProject(),rect=c.getBoundingClientRect();const e=new w.MouseEvent(type,{clientX:x*rect.width/p.width,clientY:y*rect.height/p.height,bubbles:true,cancelable:true});Object.defineProperties(e,{pointerId:{value:id},pointerType:{value:'mouse'},pressure:{value:.5}});c.dispatchEvent(e);}
 async function pixel(frame,x,y){await w.TEST.ensureFrame(frame);const cv=w.TEST.buffer();w.TEST.composite(cv.getContext('2d'),frame,false);return [...cv.getContext('2d').getImageData(x,y,1,1).data];}
@@ -39,7 +39,7 @@ async function pixel(frame,x,y){await w.TEST.ensureFrame(frame);const cv=w.TEST.
  await T.exportFile('gif');await wait();const gif=JSON.parse(exported.at(-1).data);assert.equal(gif.frames.length,3);assert.equal(gif.fps,8);assert.equal(gif.frames[1].hold,3);
  await T.exportFile('project');assert.equal(JSON.parse(exported.at(-1).data).version,4);
  T.getProject().layers[1].locked=true;const previous=JSON.stringify(T.getProject());pointer('pointerdown',300,200);pointer('pointerup',300,200);await wait();assert.equal(JSON.stringify(T.getProject()),previous,'locked layers must reject painting');
- await w.autosave();const db=await new Promise(resolve=>{const r=indexedDB.open('MiniAnimatorStudio',1);r.onsuccess=()=>resolve(r.result);});const saved=await new Promise(resolve=>{const r=db.transaction('projects').objectStore('projects').get('current');r.onsuccess=()=>resolve(r.result);});assert.equal(saved.frames.length,3);assert.equal(saved.fps,8);db.close();
+ await T.autosave();const db=await new Promise(resolve=>{const r=indexedDB.open('MiniAnimatorStudio',1);r.onsuccess=()=>resolve(r.result);});const saved=await new Promise(resolve=>{const r=db.transaction('projects').objectStore('projects').get('current');r.onsuccess=()=>resolve(r.result);});assert.equal(saved.frames.length,3);assert.equal(saved.fps,8);db.close();
  console.log('Actual editor integration passed: drawing, frame duplication, blank frames, undo/redo, eraser alpha, layer opacity, PNG/GIF/project export payloads');
  dom.window.close();
 })().catch(e=>{console.error(e);dom.window.close();process.exitCode=1;});

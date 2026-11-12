@@ -27,3 +27,7 @@ La prova reale su telefono/tablet e penna resta necessaria: tocco e pressione, z
 ## 4.0.1 — tema blu
 
 Sfondo dell’editor, pannelli, barra superiore, finestre e barre Android convertiti a una palette blu. Il foglio e i colori dei disegni mantengono le impostazioni del progetto. Stesso identificativo e firma della Studio 4.0, versione Android superiore per aggiornare senza disinstallare.
+
+## 5.0
+
+Numerazione aggiornata su richiesta dell’utente: stessa revisione con tema blu, versioneName 5.0 e codice Android 50 per distinguere l’APK e consentire l’aggiornamento. Firma e identificativo della versione Studio invariati.

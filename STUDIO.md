@@ -23,3 +23,7 @@ Limiti della prima versione: 240 fotogrammi, 24 livelli e 2 megapixel per foglio
 Test del modello su celle, duplicazione e riordino, isolamento tra frame/livelli, durata, importazione precedente e annulla/rifai. Test del riempimento su confini, trasparenza e operazioni senza effetto. Test dei file BMP, dei tracciati e delle maschere SVG e della protezione XML. Test con il codice reale dell’editor e un motore Canvas su selezioni/spostamento, testo, trasformazioni, ridimensionamento, salvataggio, esportazioni e riapertura dei dati. Verifica della resa raster di un SVG esportato. Controllo della sintassi JavaScript e compilazione Android.
 
 La prova reale su telefono/tablet e penna resta necessaria: tocco e pressione, zoom, ripristino, importazione, anteprima, esportazioni PNG/GIF e file salvati. Il codice dell'editor è suddiviso in model.js, pixels.js, studio.js e studio.css per consentire ulteriori revisioni senza duplicare un unico grande file.
+
+## 4.0.1 — tema blu
+
+Sfondo dell’editor, pannelli, barra superiore, finestre e barre Android convertiti a una palette blu. Il foglio e i colori dei disegni mantengono le impostazioni del progetto. Stesso identificativo e firma della Studio 4.0, versione Android superiore per aggiornare senza disinstallare.

@@ -56,12 +56,12 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = Color.rgb(21, 25, 34)
-        window.navigationBarColor = Color.rgb(21, 25, 34)
+        window.statusBarColor = Color.rgb(22, 59, 105)
+        window.navigationBarColor = Color.rgb(22, 59, 105)
         web = WebView(this)
-        web.setBackgroundColor(Color.rgb(21, 25, 34))
+        web.setBackgroundColor(Color.rgb(22, 59, 105))
         val container = android.widget.FrameLayout(this).apply {
-            setBackgroundColor(Color.rgb(21, 25, 34))
+            setBackgroundColor(Color.rgb(22, 59, 105))
             addView(web, android.widget.FrameLayout.LayoutParams(-1, -1))
             setOnApplyWindowInsetsListener { view, insets ->
                 view.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop,

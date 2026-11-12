@@ -1,85 +1,205 @@
 package com.dimitriazzarone.minianimator
 
 import android.annotation.SuppressLint
-import android.content.ContentValues
+import android.app.Activity
+import android.content.Intent
+import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import android.util.Base64
-import android.webkit.JavascriptInterface
-import android.webkit.ValueCallback
-import android.webkit.WebChromeClient
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.widget.Toast
+import android.webkit.*
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.webkit.WebViewAssetLoader
+import com.squareup.gifencoder.GifEncoder
+import com.squareup.gifencoder.ImageOptions
+import org.json.JSONObject
+import java.io.ByteArrayInputStream
 import java.io.File
-import java.io.FileOutputStream
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.roundToLong
 
 class MainActivity : ComponentActivity() {
+    private lateinit var web: WebView
     private var chooser: ValueCallback<Array<Uri>>? = null
+    private val worker = Executors.newSingleThreadExecutor()
+    private val exporting = AtomicBoolean(false)
+    private var exportFile: File? = null
+    @Volatile private var closed = false
+    private val origin = "https://appassets.androidplatform.net/assets/"
 
-    private val picker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        val cb = chooser
-        chooser = null
-        cb?.onReceiveValue(if (uri == null) null else arrayOf(uri))
+    private val picker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val cb = chooser; chooser = null
+        cb?.onReceiveValue(uri?.let { arrayOf(it) })
+    }
+    private val savePicker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val file = exportFile; exportFile = null
+        val uri = if (result.resultCode == Activity.RESULT_OK) result.data?.data else null
+        if (file == null || uri == null) {
+            file?.delete(); exporting.set(false)
+            exportResult(false, "Esportazione annullata: il progetto resta nell'app.")
+        } else worker.execute {
+            try {
+                contentResolver.openOutputStream(uri, "w")?.use { output ->
+                    file.inputStream().use { input -> check(input.copyTo(output) == file.length()) }
+                } ?: error("Destinazione non disponibile")
+                exportResult(true, "File esportato correttamente")
+            } catch (e: Exception) {
+                exportResult(false, "Salvataggio non riuscito: ${e.message ?: "errore"}")
+            } finally { file.delete(); exporting.set(false) }
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val web = WebView(this)
+        window.statusBarColor = Color.rgb(21, 25, 34)
+        window.navigationBarColor = Color.rgb(21, 25, 34)
+        web = WebView(this)
+        web.setBackgroundColor(Color.rgb(21, 25, 34))
         setContentView(web)
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
-        web.settings.allowFileAccess = true
+        web.settings.allowFileAccess = false
         web.settings.allowContentAccess = true
-        web.webViewClient = WebViewClient()
+        web.settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+        val loader = WebViewAssetLoader.Builder()
+            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this)).build()
+        web.webViewClient = object : WebViewClient() {
+            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse {
+                if (request.url.scheme == "https" && request.url.host == "appassets.androidplatform.net") {
+                    loader.shouldInterceptRequest(request.url)?.let { return it }
+                }
+                return WebResourceResponse("text/plain", "UTF-8", 404, "Not Found", emptyMap(), ByteArrayInputStream(byteArrayOf()))
+            }
+            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
+                !request.url.toString().startsWith(origin)
+        }
         web.webChromeClient = object : WebChromeClient() {
-            override fun onShowFileChooser(
-                webView: WebView?,
-                filePathCallback: ValueCallback<Array<Uri>>?,
-                fileChooserParams: FileChooserParams?
-            ): Boolean {
-                chooser?.onReceiveValue(null)
-                chooser = filePathCallback
-                picker.launch("image/*")
+            override fun onShowFileChooser(view: WebView?, callback: ValueCallback<Array<Uri>>?, params: FileChooserParams?): Boolean {
+                chooser?.onReceiveValue(null); chooser = callback
+                // Some providers do not support mixed image/JSON MIME lists.
+                picker.launch(arrayOf("image/*", "application/json", "application/octet-stream"))
+                return true
+            }
+            override fun onJsAlert(view: WebView?, url: String?, message: String?, result: JsResult): Boolean {
+                android.app.AlertDialog.Builder(this@MainActivity).setMessage(message)
+                    .setPositiveButton("OK") { _, _ -> result.confirm() }.setOnCancelListener { result.cancel() }.show()
+                return true
+            }
+            override fun onJsConfirm(view: WebView?, url: String?, message: String?, result: JsResult): Boolean {
+                android.app.AlertDialog.Builder(this@MainActivity).setMessage(message)
+                    .setPositiveButton("Conferma") { _, _ -> result.confirm() }
+                    .setNegativeButton("Annulla") { _, _ -> result.cancel() }.setOnCancelListener { result.cancel() }.show()
+                return true
+            }
+            override fun onJsPrompt(view: WebView?, url: String?, message: String?, defaultValue: String?, result: JsPromptResult): Boolean {
+                val input = android.widget.EditText(this@MainActivity).apply { setText(defaultValue); selectAll() }
+                android.app.AlertDialog.Builder(this@MainActivity).setTitle(message).setView(input)
+                    .setPositiveButton("OK") { _, _ -> result.confirm(input.text.toString()) }
+                    .setNegativeButton("Annulla") { _, _ -> result.cancel() }.setOnCancelListener { result.cancel() }.show()
                 return true
             }
         }
         web.addJavascriptInterface(Bridge(), "Android")
-        web.loadUrl("file:///android_asset/index.html")
+        web.loadUrl(origin + "index.html")
     }
-
-    inner class Bridge {
-        @JavascriptInterface
-        fun saveBase64(filename: String, mime: String, data: String) {
-            runOnUiThread {
+    private fun exportResult(ok: Boolean, message: String) {
+        runOnUiThread {
+            if (!closed) web.evaluateJavascript("window.onNativeExport&&window.onNativeExport($ok,${JSONObject.quote(message)});", null)
+        }
+    }
+    private fun progress(message: String) {
+        runOnUiThread { if (!closed) web.evaluateJavascript("window.onNativeProgress&&window.onNativeProgress(${JSONObject.quote(message)});", null) }
+    }
+    private fun prepare(filename: String, mime: String, job: (File) -> Unit) {
+        runOnUiThread {
+            if (closed || !web.url.orEmpty().startsWith(origin)) return@runOnUiThread
+            if (!exporting.compareAndSet(false, true)) { exportResult(false, "Un'esportazione è già in corso"); return@runOnUiThread }
+            worker.execute {
+                val file = File.createTempFile("mini-export-", ".tmp", cacheDir)
                 try {
-                    val bytes = Base64.decode(data, Base64.DEFAULT)
-                    if (Build.VERSION.SDK_INT >= 29) {
-                        val v = ContentValues().apply {
-                            put(MediaStore.Downloads.DISPLAY_NAME, filename)
-                            put(MediaStore.Downloads.MIME_TYPE, mime)
-                            put(MediaStore.Downloads.IS_PENDING, 1)
+                    job(file)
+                    runOnUiThread {
+                        if (closed) { file.delete(); exporting.set(false) }
+                        else {
+                            exportFile = file
+                            val safe = filename.replace(Regex("[\\\\/\\p{Cntrl}]"), "_").take(100)
+                            savePicker.launch(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                                addCategory(Intent.CATEGORY_OPENABLE); type = mime
+                                putExtra(Intent.EXTRA_TITLE, safe)
+                            })
                         }
-                        val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v)
-                            ?: error("Impossibile creare il file")
-                        contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
-                        v.clear()
-                        v.put(MediaStore.Downloads.IS_PENDING, 0)
-                        contentResolver.update(uri, v, null, null)
-                    } else {
-                        val dir = getExternalFilesDir(null) ?: filesDir
-                        FileOutputStream(File(dir, filename)).use { it.write(bytes) }
                     }
-                    Toast.makeText(this@MainActivity, "Salvato: $filename", Toast.LENGTH_LONG).show()
-                } catch (e: Exception) {
-                    Toast.makeText(this@MainActivity, "Errore: ${e.message}", Toast.LENGTH_LONG).show()
+                } catch (e: Exception) { file.delete(); exporting.set(false); exportResult(false, "Esportazione: ${e.message ?: "errore"}") }
+            }
+        }
+    }
+    inner class Bridge {
+        @JavascriptInterface fun saveProject(filename: String, raw: String) {
+            if (raw.length > 60000000) { exportResult(false, "Progetto troppo grande"); return }
+            prepare(filename, "application/json") { file ->
+                val data = JSONObject(raw)
+                check(data.optInt("version") == 4 && data.getJSONArray("frames").length() in 1..240)
+                file.writeText(raw, Charsets.UTF_8)
+            }
+        }
+        @JavascriptInterface fun saveBase64(filename: String, mime: String, data: String) {
+            if (mime != "image/png" || data.length > 24000000) { exportResult(false, "PNG non valido"); return }
+            prepare(filename, mime) { it.writeBytes(Base64.decode(data, Base64.DEFAULT)) }
+        }
+        @JavascriptInterface fun exportGif(filename: String, raw: String) {
+            if (raw.length > 60000000) { exportResult(false, "Animazione troppo grande"); return }
+            prepare(filename, "image/gif") { file ->
+                val payload = JSONObject(raw)
+                val fps = payload.getInt("fps").coerceIn(1, 30)
+                val frames = payload.getJSONArray("frames")
+                check(frames.length() in 1..240) { "Numero di fotogrammi non valido" }
+                file.outputStream().use { output ->
+                    var encoder: GifEncoder? = null
+                    var width = 0; var height = 0
+                    for (i in 0 until frames.length()) {
+                        val frame = frames.getJSONObject(i)
+                        val data = Base64.decode(frame.getString("png"), Base64.DEFAULT)
+                        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                        BitmapFactory.decodeByteArray(data, 0, data.size, bounds)
+                        check(bounds.outWidth in 1..640 && bounds.outHeight in 1..640) { "Dimensioni GIF non valide" }
+                        check(bounds.outWidth.toLong() * bounds.outHeight * frames.length() <= 40000000) { "GIF troppo grande" }
+                        val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size) ?: error("Fotogramma non leggibile")
+                        try {
+                            if (encoder == null) {
+                                width = bitmap.width; height = bitmap.height
+                                encoder = GifEncoder(output, width, height, 0)
+                            }
+                            check(bitmap.width == width && bitmap.height == height)
+                            val pixels = IntArray(width * height)
+                            bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+                            val rgb = Array(height) { y -> IntArray(width) { x -> pixels[y * width + x] and 0x00ffffff } }
+                            val options = ImageOptions().apply {
+                                setDelay((1000.0 * frame.optInt("hold", 1).coerceIn(1, 24) / fps).roundToLong(), TimeUnit.MILLISECONDS)
+                            }
+                            encoder.addImage(rgb, options)
+                            progress("Codifico GIF: ${i + 1} / ${frames.length()}")
+                        } finally { bitmap.recycle() }
+                    }
+                    encoder?.finishEncoding()
                 }
             }
         }
+    }
+    override fun onPause() {
+        if (::web.isInitialized) web.evaluateJavascript("if(window.autosave)autosave();if(window.stopPlayback)stopPlayback();", null)
+        super.onPause()
+    }
+    override fun onDestroy() {
+        closed = true
+        chooser?.onReceiveValue(null); chooser = null
+        exportFile?.delete(); exportFile = null
+        worker.shutdown()
+        if (::web.isInitialized) { web.removeJavascriptInterface("Android"); web.destroy() }
+        super.onDestroy()
     }
 }

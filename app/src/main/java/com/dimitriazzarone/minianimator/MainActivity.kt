@@ -148,7 +148,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         @JavascriptInterface fun saveBase64(filename: String, mime: String, data: String) {
-            if (mime != "image/png" || data.length > 24000000) { exportResult(false, "PNG non valido"); return }
+            if (mime !in setOf("image/png", "image/jpeg", "image/bmp", "image/svg+xml") || data.length > 40000000) { exportResult(false, "Formato o dimensione del file non valido"); return }
             prepare(filename, mime) { it.writeBytes(Base64.decode(data, Base64.DEFAULT)) }
         }
         @JavascriptInterface fun exportGif(filename: String, raw: String) {

@@ -2,7 +2,7 @@
   "name": "minianimator-studio-checks",
   "private": true,
   "scripts": {
-    "test": "node tests/model.test.cjs && node tests/pixels.test.cjs && node tests/editor.integration.cjs"
+    "test": "node tests/model.test.cjs && node tests/pixels.test.cjs && node tests/formats.test.cjs && node tests/editor.integration.cjs"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^1.1.1",

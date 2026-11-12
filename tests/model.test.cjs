@@ -17,3 +17,5 @@ M.moveFrame(p,0,1);assert.equal(p.frames[0].hold,3);
 console.log('Animation document, migration, layer/frame editing and history checks passed');
 
 const many=M.validate({frames:Array.from({length:40},()=>({layers:[{name:'A',img:ink}]}))});assert.equal(many.layers.length,1);assert.equal(many.frames.length,40);
+
+const vectorProject=M.create();const vectorId=vectorProject.layers[0].id;vectorProject.frames[0].vectors[vectorId]={base:null,ops:[{type:'stroke',points:[{x:4,y:5,w:2}],color:'#ff0000',opacity:1}]};M.addFrame(vectorProject,0,true);vectorProject.frames[1].vectors[vectorId].ops[0].points[0].x=99;assert.equal(vectorProject.frames[0].vectors[vectorId].ops[0].points[0].x,4);const reopened=M.validate(JSON.parse(JSON.stringify(vectorProject)));assert.equal(reopened.frames[0].vectors[vectorId].ops[0].points[0].x,4);

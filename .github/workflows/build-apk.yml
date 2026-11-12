@@ -28,6 +28,7 @@ jobs:
           node --check app/src/main/assets/studio.js
           node tests/model.test.cjs
           node tests/pixels.test.cjs
+          node tests/formats.test.cjs
           node tests/editor.integration.cjs
       - name: Build release
         run: gradle :app:assembleRelease --stacktrace

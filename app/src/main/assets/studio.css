@@ -4,3 +4,5 @@
 @media(max-height:560px){#app{grid-template-rows:46px 37px minmax(0,1fr) 136px}.timeline-heading{height:34px}.frame-card .thumb{height:37px}.frame-card{width:83px}.frame-card .thumb{width:73px}.timeline-bottom{height:23px}#frames{padding-top:2px;padding-bottom:3px}.toolrail button{height:31px;margin-bottom:2px}.toolrail{padding-top:6px;gap:2px}.brand small{display:none}.color-field{height:60px}.workspace-note{display:none}#sidebar{top:83px;bottom:136px}.options{font-size:10px}#toast{bottom:145px}.stage-footer{height:23px}.document-tab{height:27px}}
 
 #documentMenu{font-size:16px;min-height:23px;padding:0 7px;color:var(--muted)}.document-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:20px 0}.document-actions button{border:1px solid var(--line);text-align:left;padding:12px;font-size:11px}#closeDocument{float:right}
+
+.brand small.author-credit{display:block!important;font-size:9px;letter-spacing:.2px;color:var(--muted);margin-top:4px}

@@ -60,7 +60,16 @@ class MainActivity : ComponentActivity() {
         window.navigationBarColor = Color.rgb(21, 25, 34)
         web = WebView(this)
         web.setBackgroundColor(Color.rgb(21, 25, 34))
-        setContentView(web)
+        val container = android.widget.FrameLayout(this).apply {
+            setBackgroundColor(Color.rgb(21, 25, 34))
+            addView(web, android.widget.FrameLayout.LayoutParams(-1, -1))
+            setOnApplyWindowInsetsListener { view, insets ->
+                view.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
+                    insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
+                insets.consumeSystemWindowInsets()
+            }
+        }
+        setContentView(container)
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
         web.settings.allowFileAccess = false

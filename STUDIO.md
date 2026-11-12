@@ -32,4 +32,4 @@ Sfondo dell’editor, pannelli, barra superiore, finestre e barre Android conver
 
 Numerazione aggiornata su richiesta dell’utente: stessa revisione con tema blu, versioneName 5.0 e codice Android 50 per distinguere l’APK e consentire l’aggiornamento. Firma e identificativo della versione Studio invariati.
 
-La firma visibile nell’interfaccia è “by Dimitri Azzarone”, inclusa anche nei formati di schermo più piccoli.
+La firma visibile nell’interfaccia è “Creato da Dimitri Azzarone”, identica a quella verificata nel footer di LUME, inclusa anche nei formati di schermo più piccoli.

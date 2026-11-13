@@ -9,8 +9,8 @@ android {
         applicationId = "com.dimitriazzarone.minianimator.studio"
         minSdk = 26
         targetSdk = 35
-        versionCode = 50
-        versionName = "5.0"
+        versionCode = 51
+        versionName = "5.1"
         resValue("string", "app_name", "MiniAnimator Studio")
     }
     compileOptions {

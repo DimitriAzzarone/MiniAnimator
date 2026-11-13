@@ -25,15 +25,17 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Check editor logic
         run: |
+          node tools/build-gif-codec.cjs
           node --check app/src/main/assets/studio.js
           node tests/model.test.cjs
           node tests/pixels.test.cjs
           node tests/formats.test.cjs
+          node tests/gif.test.cjs
           node tests/editor.integration.cjs
       - name: Build release
         run: gradle :app:assembleRelease --stacktrace
       - uses: actions/upload-artifact@v4
         with:
-          name: MiniAnimator-Studio-5.0-unsigned
+          name: MiniAnimator-Studio-5.1-unsigned
           path: app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error

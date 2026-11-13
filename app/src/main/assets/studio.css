@@ -6,3 +6,7 @@
 #documentMenu{font-size:16px;min-height:23px;padding:0 7px;color:var(--muted)}.document-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:20px 0}.document-actions button{border:1px solid var(--line);text-align:left;padding:12px;font-size:11px}#closeDocument{float:right}
 
 .brand small.author-credit{display:block!important;font-size:9px;letter-spacing:.2px;color:var(--muted);margin-top:4px}
+
+@media(max-width:760px){.brand b{display:none}.top-actions{gap:2px}.top-actions button{padding:5px 7px;font-size:11px}}
+
+.options .edit-menu{font-size:11px;padding:4px 9px;border:1px solid var(--line);min-height:29px}#closeEdit{float:right}

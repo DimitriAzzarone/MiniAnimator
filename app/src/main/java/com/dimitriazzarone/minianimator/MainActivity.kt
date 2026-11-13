@@ -25,6 +25,7 @@ import kotlin.math.roundToLong
 class MainActivity : ComponentActivity() {
     private lateinit var web: WebView
     private var chooser: ValueCallback<Array<Uri>>? = null
+    private val selectedContent = java.util.Collections.synchronizedSet(mutableSetOf<String>())
     private val worker = Executors.newSingleThreadExecutor()
     private val exporting = AtomicBoolean(false)
     private var exportFile: File? = null
@@ -33,6 +34,7 @@ class MainActivity : ComponentActivity() {
 
     private val picker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         val cb = chooser; chooser = null
+        if (uri != null) selectedContent.add(uri.toString())
         cb?.onReceiveValue(uri?.let { arrayOf(it) })
     }
     private val savePicker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -78,7 +80,11 @@ class MainActivity : ComponentActivity() {
         val loader = WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this)).build()
         web.webViewClient = object : WebViewClient() {
-            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse {
+            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+                if (request.url.scheme in setOf("blob", "data")) return null
+                if (request.url.scheme == "content" && selectedContent.contains(request.url.toString())) {
+                    return try { WebResourceResponse(contentResolver.getType(request.url) ?: "application/octet-stream", null, contentResolver.openInputStream(request.url)) } catch (_: Exception) { null }
+                }
                 if (request.url.scheme == "https" && request.url.host == "appassets.androidplatform.net") {
                     loader.shouldInterceptRequest(request.url)?.let { return it }
                 }
@@ -90,8 +96,8 @@ class MainActivity : ComponentActivity() {
         web.webChromeClient = object : WebChromeClient() {
             override fun onShowFileChooser(view: WebView?, callback: ValueCallback<Array<Uri>>?, params: FileChooserParams?): Boolean {
                 chooser?.onReceiveValue(null); chooser = callback
-                // Some providers do not support mixed image/JSON MIME lists.
-                picker.launch(arrayOf("image/*", "application/json", "application/octet-stream"))
+                val imageTypes = params?.acceptTypes?.flatMap { it.split(",") }?.map { it.trim() }?.filter { it.startsWith("image/") }?.distinct().orEmpty()
+                picker.launch(if (imageTypes.isNotEmpty()) imageTypes.toTypedArray() else arrayOf("application/json", "text/plain", "application/octet-stream"))
                 return true
             }
             override fun onJsAlert(view: WebView?, url: String?, message: String?, result: JsResult): Boolean {
@@ -188,7 +194,8 @@ class MainActivity : ComponentActivity() {
                             bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
                             val rgb = Array(height) { y -> IntArray(width) { x -> pixels[y * width + x] and 0x00ffffff } }
                             val options = ImageOptions().apply {
-                                setDelay((1000.0 * frame.optInt("hold", 1).coerceIn(1, 24) / fps).roundToLong(), TimeUnit.MILLISECONDS)
+                                val duration = frame.optLong("durationMs", 0)
+                                setDelay(if (duration > 0) duration.coerceIn(10L, 655350L) else (1000.0 * frame.optInt("hold", 1).coerceIn(1, 24) / fps).roundToLong(), TimeUnit.MILLISECONDS)
                             }
                             encoder.addImage(rgb, options)
                             progress("Codifico GIF: ${i + 1} / ${frames.length()}")

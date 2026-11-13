@@ -33,3 +33,11 @@ Sfondo dell’editor, pannelli, barra superiore, finestre e barre Android conver
 Numerazione aggiornata su richiesta dell’utente: stessa revisione con tema blu, versioneName 5.0 e codice Android 50 per distinguere l’APK e consentire l’aggiornamento. Firma e identificativo della versione Studio invariati.
 
 La firma visibile nell’interfaccia è “Creato da Dimitri Azzarone”, identica a quella verificata nel footer di LUME, inclusa anche nei formati di schermo più piccoli.
+
+## 5.1 — Apri progetto e Importa immagine
+
+Menu File con Nuovo/Apri/Salva progetto e pulsante Importa dedicato alle immagini. I progetti riaprono livelli e fotogrammi; le immagini si aggiungono al progetto attuale su un livello nuovo. Selettore Android con tipo di file specifico e lettura delle immagini tramite FileReader, anche se il fornitore non restituisce un MIME preciso. Nessuna sostituzione dei livelli esistenti durante l’importazione.
+
+La versione 5.1 include inoltre apertura di GIF animate in un progetto a fotogrammi, con composizione dei frame parziali e gestione delle disposizioni GIF 2 e 3. I ritardi originali dei fotogrammi sono conservati in millisecondi, anche nella ri-esportazione; modificarne manualmente l’esposizione sostituisce il ritardo originale. Limiti di importazione: 30 MB, 240 fotogrammi, 2 megapixel per fotogramma, lato massimo 1920 e 24 milioni di pixel complessivi.
+
+Copia, taglia e incolla usano appunti interni di MiniAnimator sul livello attivo o sulla selezione. Incolla crea un livello nuovo nel fotogramma scelto; annulla/rifai supporta queste operazioni. Non è prevista in questa versione la condivisione di immagini con gli appunti di altre app. La prospettiva di animazione 3D resta uno sviluppo futuro distinto dall’editor 2D.

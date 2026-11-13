@@ -19,3 +19,5 @@ console.log('Animation document, migration, layer/frame editing and history chec
 const many=M.validate({frames:Array.from({length:40},()=>({layers:[{name:'A',img:ink}]}))});assert.equal(many.layers.length,1);assert.equal(many.frames.length,40);
 
 const vectorProject=M.create();const vectorId=vectorProject.layers[0].id;vectorProject.frames[0].vectors[vectorId]={base:null,ops:[{type:'stroke',points:[{x:4,y:5,w:2}],color:'#ff0000',opacity:1}]};M.addFrame(vectorProject,0,true);vectorProject.frames[1].vectors[vectorId].ops[0].points[0].x=99;assert.equal(vectorProject.frames[0].vectors[vectorId].ops[0].points[0].x,4);const reopened=M.validate(JSON.parse(JSON.stringify(vectorProject)));assert.equal(reopened.frames[0].vectors[vectorId].ops[0].points[0].x,4);
+
+const timing=M.create();timing.frames[0].durationMs=130;const timed=M.validate(JSON.parse(JSON.stringify(timing)));assert.equal(timed.frames[0].durationMs,130);assert.equal(M.duration(timed),.13);assert.throws(()=>M.validate({...timing,frames:[{...timing.frames[0],durationMs:-1}]}));

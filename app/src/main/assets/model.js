@@ -5,16 +5,16 @@ const clone=x=>JSON.parse(JSON.stringify(x));
 const clamp=(v,a,b,d)=>Number.isFinite(+v)?Math.max(a,Math.min(b,+v)):d;
 function layer(name){return{id:id(),name:name||'Livello',visible:true,locked:false,opacity:1};}
 function frame(){return{id:id(),hold:1,cels:{},vectors:{}};}
-function create(options={}){return{format:'MiniAnimator',version:4,name:String(options.name||'Senza titolo').slice(0,120),width:Math.round(clamp(options.width,64,1920,960)),height:Math.round(clamp(options.height,64,1920,540)),fps:Math.round(clamp(options.fps,1,30,12)),background:options.background==='transparent'?'transparent':'#ffffff',layers:[layer('Disegno 1')],frames:[frame()]};}
+function create(options={}){return{format:'MiniAnimator',version:4,name:String(options.name||'Senza titolo').slice(0,120),width:Math.round(clamp(options.width,1,1920,960)),height:Math.round(clamp(options.height,1,1920,540)),fps:Math.round(clamp(options.fps,1,30,12)),background:options.background==='transparent'?'transparent':'#ffffff',layers:[layer('Disegno 1')],frames:[frame()]};}
 function validate(raw){
  if(!raw||!Array.isArray(raw.frames)||!raw.frames.length||raw.frames.length>240)throw Error('Progetto non valido: da 1 a 240 fotogrammi.');
  if(raw.version===4){
   if(!Array.isArray(raw.layers)||!raw.layers.length||raw.layers.length>24)throw Error('Da 1 a 24 livelli.');
-  if(!Number.isFinite(+raw.width)||!Number.isFinite(+raw.height)||+raw.width<64||+raw.height<64||+raw.width*+raw.height>2073600)throw Error('Formato del progetto non valido.');
+  if(!Number.isFinite(+raw.width)||!Number.isFinite(+raw.height)||+raw.width<1||+raw.height<1||+raw.width>1920||+raw.height>1920||+raw.width*+raw.height>2073600)throw Error('Formato del progetto non valido.');
   const p=create(raw);p.layers=raw.layers.map((v,i)=>({id:String(v.id||id()),name:String(v.name||'Livello '+(i+1)).slice(0,80),visible:v.visible!==false,locked:!!v.locked,opacity:clamp(v.opacity,0,1,1)}));
   if(new Set(p.layers.map(x=>x.id)).size!==p.layers.length)throw Error('Identificativi dei livelli duplicati.');
   const allowed=new Set(p.layers.map(x=>x.id));
-  p.frames=raw.frames.map(v=>{const f=frame();f.hold=Math.round(clamp(v.hold,1,24,1));for(const [key,data]of Object.entries(v.cels||{})){if(allowed.has(key)&&data){if(typeof data!=='string'||!/^data:image\/(png|jpeg|webp);base64,/.test(data)||data.length>16000000)throw Error('Immagine di un livello non valida.');f.cels[key]=data;}}for(const [key,vector]of Object.entries(v.vectors||{})){if(allowed.has(key)&&vector&&Array.isArray(vector.ops)&&vector.ops.length<=10000){const base=vector.base;if(base!==null&&base!==undefined&&(typeof base!=='string'||!/^data:image\/(png|jpeg|webp);base64,/.test(base)))throw Error('Base vettoriale non valida.');if(JSON.stringify(vector).length>8000000)throw Error('Tracciati del livello troppo grandi.');f.vectors[key]={base:base||null,ops:clone(vector.ops)};}}return f;});
+  p.frames=raw.frames.map(v=>{const f=frame();f.hold=Math.round(clamp(v.hold,1,24,1));if(v.durationMs!==undefined){if(!Number.isFinite(+v.durationMs)||+v.durationMs<10||+v.durationMs>655350)throw Error('Durata del fotogramma non valida.');f.durationMs=Math.round(+v.durationMs);}for(const [key,data]of Object.entries(v.cels||{})){if(allowed.has(key)&&data){if(typeof data!=='string'||!/^data:image\/(png|jpeg|webp);base64,/.test(data)||data.length>16000000)throw Error('Immagine di un livello non valida.');f.cels[key]=data;}}for(const [key,vector]of Object.entries(v.vectors||{})){if(allowed.has(key)&&vector&&Array.isArray(vector.ops)&&vector.ops.length<=10000){const base=vector.base;if(base!==null&&base!==undefined&&(typeof base!=='string'||!/^data:image\/(png|jpeg|webp);base64,/.test(base)))throw Error('Base vettoriale non valida.');if(JSON.stringify(vector).length>24000000)throw Error('Tracciati del livello troppo grandi.');f.vectors[key]={base:base||null,ops:clone(vector.ops)};}}return f;});
   return p;
  }
  // Migrate legacy 3.x raster projects while preserving each frame's appearance.
@@ -35,7 +35,8 @@ function moveFrame(p,at,delta){const to=Math.max(0,Math.min(p.frames.length-1,at
 function addLayer(p,at,duplicate=false){if(p.layers.length>=24)throw Error('Limite di 24 livelli.');const old=p.layers[at];const l=duplicate?{...old,id:id(),name:old.name+' copia'}:layer('Disegno '+(p.layers.length+1));p.layers.splice(at+1,0,l);if(duplicate)for(const f of p.frames){if(f.cels[old.id])f.cels[l.id]=f.cels[old.id];if(f.vectors?.[old.id]){f.vectors=f.vectors||{};f.vectors[l.id]=clone(f.vectors[old.id]);}}return at+1;}
 function deleteLayer(p,at){if(p.layers.length===1)throw Error('Conserva almeno un livello.');const [l]=p.layers.splice(at,1);for(const f of p.frames){delete f.cels[l.id];if(f.vectors)delete f.vectors[l.id];}return Math.min(at,p.layers.length-1);}
 function moveLayer(p,at,delta){const to=Math.max(0,Math.min(p.layers.length-1,at+delta));if(to!==at)p.layers.splice(to,0,p.layers.splice(at,1)[0]);return to;}
-function duration(p){return p.frames.reduce((sum,f)=>sum+f.hold,0)/p.fps;}
+function frameDurationMs(p,f){return f.durationMs||1000*f.hold/p.fps;}
+function duration(p){return p.frames.reduce((sum,f)=>sum+frameDurationMs(p,f),0)/1000;}
 class History{
  constructor(maxBytes=24000000){this.undoStack=[];this.redoStack=[];this.maxBytes=maxBytes;}
  push(value){const s=JSON.stringify(value);if(s.length>this.maxBytes)throw Error('Progetto troppo grande per la cronologia: esporta e semplifica i livelli.');this.undoStack.push(s);this.redoStack=[];while(this.undoStack.length>24||this.undoStack.reduce((n,x)=>n+x.length,0)>this.maxBytes)this.undoStack.shift();}
@@ -43,5 +44,5 @@ class History{
  redo(current){if(!this.redoStack.length)return null;this.undoStack.push(JSON.stringify(current));return JSON.parse(this.redoStack.pop());}
  clear(){this.undoStack=[];this.redoStack=[];}
 }
-return{create,validate,clone,addFrame,deleteFrame,moveFrame,addLayer,deleteLayer,moveLayer,duration,History};
+return{create,validate,clone,addFrame,deleteFrame,moveFrame,addLayer,deleteLayer,moveLayer,duration,frameDurationMs,History};
 });

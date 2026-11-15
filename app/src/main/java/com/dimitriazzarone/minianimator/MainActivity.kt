@@ -24,6 +24,11 @@ import kotlin.math.roundToLong
 
 class MainActivity : ComponentActivity() {
     private lateinit var web: WebView
+    private lateinit var videoImporter: VideoImporter
+    private val videoPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+        if (::videoImporter.isInitialized) videoImporter.picked(uri)
+    }
     private var chooser: ValueCallback<Array<Uri>>? = null
     private val selectedContent = java.util.Collections.synchronizedSet(mutableSetOf<String>())
     private val worker = Executors.newSingleThreadExecutor()
@@ -77,8 +82,10 @@ class MainActivity : ComponentActivity() {
         web.settings.allowFileAccess = false
         web.settings.allowContentAccess = true
         web.settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+        videoImporter = VideoImporter(this, web, worker) { videoPicker.launch(arrayOf("video/*")) }
         val loader = WebViewAssetLoader.Builder()
-            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this)).build()
+            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
+            .addPathHandler("/video/", WebViewAssetLoader.PathHandler { path -> videoImporter.open(path) }).build()
         web.webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
                 if (request.url.scheme in setOf("blob", "data")) return null
@@ -133,6 +140,7 @@ class MainActivity : ComponentActivity() {
     private fun prepare(filename: String, mime: String, job: (File) -> Unit) {
         runOnUiThread {
             if (closed || !web.url.orEmpty().startsWith(origin)) return@runOnUiThread
+            if (::videoImporter.isInitialized && videoImporter.busy.get()) return@runOnUiThread
             if (!exporting.compareAndSet(false, true)) { exportResult(false, "Un'esportazione è già in corso"); return@runOnUiThread }
             worker.execute {
                 val file = File.createTempFile("mini-export-", ".tmp", cacheDir)
@@ -154,6 +162,10 @@ class MainActivity : ComponentActivity() {
         }
     }
     inner class Bridge {
+        @JavascriptInterface fun pickVideo(id: String) { runOnUiThread { if (!closed && web.url.orEmpty().startsWith(origin)) { if (!exporting.get()) videoImporter.pick(id) else web.evaluateJavascript("window.onNativeVideoError&&window.onNativeVideoError("+JSONObject().put("id",id).put("message","Attendi la fine dell’esportazione.").toString()+");",null) } } }
+        @JavascriptInterface fun cancelVideoImport(id: String) { runOnUiThread { videoImporter.cancel(id) } }
+        @JavascriptInterface fun finishVideoImport(id: String) { runOnUiThread { videoImporter.finish(id) } }
+
         @JavascriptInterface fun saveProject(filename: String, raw: String) {
             if (raw.length > 60000000) { exportResult(false, "Progetto troppo grande"); return }
             prepare(filename, "application/json") { file ->
@@ -212,6 +224,7 @@ class MainActivity : ComponentActivity() {
     }
     override fun onDestroy() {
         closed = true
+        if (::videoImporter.isInitialized) videoImporter.close()
         chooser?.onReceiveValue(null); chooser = null
         exportFile?.delete(); exportFile = null
         worker.shutdown()

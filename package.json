@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "test": "node tests/model.test.cjs && node tests/pixels.test.cjs && node tests/formats.test.cjs && node tests/gif.test.cjs && node tests/world.test.cjs && node tests/editor.integration.cjs",
-    "test:workspace": "node tests/workspace.browser.cjs"
+    "test:workspace": "node tests/workspace.browser.cjs",
+    "test:video": "node tests/video-import.browser.cjs"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^1.1.1",

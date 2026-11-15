@@ -9,8 +9,8 @@ android {
         applicationId = "com.dimitriazzarone.minianimator.studio"
         minSdk = 26
         targetSdk = 35
-        versionCode = 60
-        versionName = "6.0"
+        versionCode = 61
+        versionName = "6.1"
         resValue("string", "app_name", "MiniAnimator Studio")
     }
     compileOptions {
@@ -21,6 +21,7 @@ android {
     buildTypes { getByName("release") { isMinifyEnabled = false } }
 }
 dependencies {
+    testImplementation("junit:junit:4.13.2")
     implementation("com.squareup:gifencoder:0.10.1")
     implementation("androidx.activity:activity-ktx:1.10.0")
     implementation("androidx.webkit:webkit:1.17.0")

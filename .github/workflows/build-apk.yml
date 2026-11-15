@@ -37,10 +37,12 @@ jobs:
           node tests/world.test.cjs
           node --check app/src/main/assets/workspace.js
           node tests/workspace.browser.cjs
+          node --check app/src/main/assets/video-import.js
+          node tests/video-import.browser.cjs
       - name: Build release
-        run: gradle :app:assembleRelease --stacktrace
+        run: gradle :app:testDebugUnitTest :app:assembleRelease --stacktrace
       - uses: actions/upload-artifact@v4
         with:
-          name: MiniAnimator-Studio-6.0-unsigned
+          name: MiniAnimator-Studio-6.1-unsigned
           path: app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error

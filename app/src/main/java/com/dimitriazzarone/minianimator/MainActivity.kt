@@ -188,6 +188,7 @@ class MainActivity : ComponentActivity() {
                 file.outputStream().use { output ->
                     var encoder: GifEncoder? = null
                     var width = 0; var height = 0
+                    val clock = GifDelayClock()
                     for (i in 0 until frames.length()) {
                         val frame = frames.getJSONObject(i)
                         val data = Base64.decode(frame.getString("png"), Base64.DEFAULT)
@@ -207,7 +208,7 @@ class MainActivity : ComponentActivity() {
                             val rgb = Array(height) { y -> IntArray(width) { x -> pixels[y * width + x] and 0x00ffffff } }
                             val options = ImageOptions().apply {
                                 val duration = frame.optLong("durationMs", 0)
-                                setDelay(if (duration > 0) duration.coerceIn(10L, 655350L) else (1000.0 * frame.optInt("hold", 1).coerceIn(1, 24) / fps).roundToLong(), TimeUnit.MILLISECONDS)
+                                setDelay(clock.next(if (duration > 0) duration.coerceIn(10L, 655350L).toDouble() else 1000.0 * frame.optInt("hold", 1).coerceIn(1, 24) / fps), TimeUnit.MILLISECONDS)
                             }
                             encoder.addImage(rgb, options)
                             progress("Codifico GIF: ${i + 1} / ${frames.length()}")

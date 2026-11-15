@@ -2,14 +2,16 @@
   "name": "minianimator-studio-checks",
   "private": true,
   "scripts": {
-    "test": "node tests/model.test.cjs && node tests/pixels.test.cjs && node tests/formats.test.cjs && node tests/gif.test.cjs && node tests/editor.integration.cjs"
+    "test": "node tests/model.test.cjs && node tests/pixels.test.cjs && node tests/formats.test.cjs && node tests/gif.test.cjs && node tests/world.test.cjs && node tests/editor.integration.cjs",
+    "test:workspace": "node tests/workspace.browser.cjs"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^1.1.1",
-    "fake-indexeddb": "^6.2.8",
-    "jsdom": "^31.0.0",
-    "gifuct-js": "2.1.2",
     "esbuild": "0.25.12",
-    "gifenc": "1.0.3"
+    "fake-indexeddb": "^6.2.8",
+    "gifenc": "1.0.3",
+    "gifuct-js": "2.1.2",
+    "jsdom": "^31.0.0",
+    "playwright": "1.62.1"
   }
 }

@@ -7,3 +7,7 @@ local.properties
 .DS_Store
 
 node_modules/
+
+local.properties
+test-artifacts/
+*.log

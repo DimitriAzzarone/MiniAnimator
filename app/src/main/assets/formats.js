@@ -5,8 +5,8 @@ const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const n=(value,fallback=0)=>Number.isFinite(+value)?Math.max(-1000000,Math.min(1000000,+value)):fallback;
 const color=v=>/^#[0-9a-f]{6}$/i.test(v)?v:'#22283a';
 function svg(project,index){let masks=[],serial=0,vectorCount=0,rasterCount=0,pointsUsed=0;const width=project.width,height=project.height;
- function image(data){if(typeof data!=='string'||!/^data:image\/(png|jpeg|webp);base64,[a-z0-9+/=]+$/i.test(data))return '';rasterCount++;return '<image width="'+width+'" height="'+height+'" href="'+data+'"/>';}
- function operation(op){if(!op||typeof op!=='object')return '';const alpha=Math.max(0,Math.min(1,n(op.opacity,1))),ink=color(op.color),w=Math.max(.1,n(op.width,8));
+ function image(data,x=0,y=0,w=width,h=height){if(typeof data!=='string'||!/^data:image\/(png|jpeg|webp);base64,[a-z0-9+/=]+$/i.test(data))return '';rasterCount++;return '<image x="'+n(x)+'" y="'+n(y)+'" width="'+n(w)+'" height="'+n(h)+'" href="'+data+'"/>';}
+ function operation(op){if(!op||typeof op!=='object')return '';if(op.type==='raster'||op.type==='eraseImage')return image(op.data,op.x,op.y,op.w,op.h);if(op.type==='clear')return '<rect x="'+n(op.x)+'" y="'+n(op.y)+'" width="'+n(op.w)+'" height="'+n(op.h)+'" fill="black"/>';const alpha=Math.max(0,Math.min(1,n(op.opacity,1))),ink=color(op.color),w=Math.max(.1,n(op.width,8));
   if(op.type==='stroke'&&Array.isArray(op.points)){vectorCount++;pointsUsed+=op.points.length;if(pointsUsed>120000)throw Error('SVG troppo complesso: esporta il fotogramma in PNG o semplifica i tracciati.');const points=op.points;let content='';for(let i=0;i<points.length;i++){const p=points[i],r=Math.max(.1,n(p.w,w));if(i===0)content+='<circle cx="'+n(p.x)+'" cy="'+n(p.y)+'" r="'+r/2+'" fill="'+ink+'" opacity="'+alpha+'"/>';else{const a=points[i-1];content+='<path d="M '+n(a.x)+' '+n(a.y)+' L '+n(p.x)+' '+n(p.y)+'" fill="none" stroke="'+ink+'" stroke-width="'+r+'" stroke-linecap="round" opacity="'+alpha+'"/>';}}return content;}
   const a=op.start||{},b=op.end||{},common=' fill="none" stroke="'+ink+'" stroke-width="'+w+'" stroke-linecap="round" stroke-linejoin="round" opacity="'+alpha+'"';
   if(op.type==='line'){vectorCount++;return '<path d="M '+n(a.x)+' '+n(a.y)+' L '+n(b.x)+' '+n(b.y)+'"'+common+'/>';}
@@ -16,9 +16,11 @@ function svg(project,index){let masks=[],serial=0,vectorCount=0,rasterCount=0,po
   return '';
  }
  let content=project.background==='transparent'?'':'<rect width="100%" height="100%" fill="'+color(project.background)+'"/>';
- for(const l of project.layers){if(!l.visible)continue;const f=project.frames[index],v=f.vectors?.[l.id];let group=image(v?v.base:f.cels[l.id]);if(v&&(v.ops||[]).length>10000)throw Error('Troppi elementi per questo SVG.');if(v)for(const op of (v.ops||[])){
-  if(op.eraser&&op.type==='stroke'){const mask='erase-'+(++serial);const erased=operation({...op,color:'#000000'});masks.push('<mask id="'+mask+'" maskUnits="userSpaceOnUse" x="0" y="0" width="'+width+'" height="'+height+'" style="mask-type:luminance"><rect width="100%" height="100%" fill="white"/>'+erased+'</mask>');group='<g mask="url(#'+mask+')">'+group+'</g>';}else group+=operation(op);
- }content+='<g opacity="'+Math.max(0,Math.min(1,n(l.opacity,1)))+'" data-layer="'+escape(l.name)+'">'+group+'</g>';}
+ const camera=project.camera||{x:0,y:0};let layers='';
+ for(const l of project.layers){if(!l.visible)continue;const f=project.frames[index],v=f.vectors?.[l.id],world=f.world?.[l.id];let group=world?'':image(v?v.base:f.cels[l.id]);const ops=world?world.ops:v?.ops||[];if(ops.length>10000)throw Error('Troppi elementi per questo SVG.');for(const op of ops){
+  if(op.eraser&&op.type==='stroke'||op.type==='eraseImage'||op.type==='clear'){const mask='erase-'+(++serial);const erased=operation({...op,color:'#000000'});masks.push('<mask id="'+mask+'" maskUnits="userSpaceOnUse" x="'+n(camera.x)+'" y="'+n(camera.y)+'" width="'+width+'" height="'+height+'" style="mask-type:luminance"><rect x="'+n(camera.x)+'" y="'+n(camera.y)+'" width="'+width+'" height="'+height+'" fill="white"/>'+erased+'</mask>');group='<g mask="url(#'+mask+')">'+group+'</g>';}else group+=operation(op);
+ }layers+='<g opacity="'+Math.max(0,Math.min(1,n(l.opacity,1)))+'" data-layer="'+escape(l.name)+'">'+group+'</g>';}
+ content+='<g transform="translate('+(-n(camera.x))+' '+(-n(camera.y))+')">'+layers+'</g>';
  return{svg:'<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'" height="'+height+'" viewBox="0 0 '+width+' '+height+'"><title>'+escape(project.name)+'</title><defs>'+masks.join('')+'</defs>'+content+'</svg>',vectorCount,rasterCount};
 }
 return{bmp,svg};

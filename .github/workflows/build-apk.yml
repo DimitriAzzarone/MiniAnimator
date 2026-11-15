@@ -23,6 +23,8 @@ jobs:
           node-version: '24'
       - name: Install editor test dependencies
         run: npm ci --no-audit --no-fund
+      - name: Install browser for workspace checks
+        run: npx playwright install --with-deps chromium
       - name: Check editor logic
         run: |
           node tools/build-gif-codec.cjs
@@ -32,10 +34,13 @@ jobs:
           node tests/formats.test.cjs
           node tests/gif.test.cjs
           node tests/editor.integration.cjs
+          node tests/world.test.cjs
+          node --check app/src/main/assets/workspace.js
+          node tests/workspace.browser.cjs
       - name: Build release
         run: gradle :app:assembleRelease --stacktrace
       - uses: actions/upload-artifact@v4
         with:
-          name: MiniAnimator-Studio-5.1-unsigned
+          name: MiniAnimator-Studio-6.0-unsigned
           path: app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error

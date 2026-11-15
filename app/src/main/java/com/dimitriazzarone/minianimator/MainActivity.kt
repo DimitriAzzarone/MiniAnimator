@@ -158,7 +158,7 @@ class MainActivity : ComponentActivity() {
             if (raw.length > 60000000) { exportResult(false, "Progetto troppo grande"); return }
             prepare(filename, "application/json") { file ->
                 val data = JSONObject(raw)
-                check(data.optInt("version") == 4 && data.getJSONArray("frames").length() in 1..240)
+                check(data.optInt("version") in 4..5 && data.getJSONArray("frames").length() in 1..240)
                 file.writeText(raw, Charsets.UTF_8)
             }
         }

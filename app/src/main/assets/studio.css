@@ -10,3 +10,7 @@
 @media(max-width:760px){.brand b{display:none}.top-actions{gap:2px}.top-actions button{padding:5px 7px;font-size:11px}}
 
 .options .edit-menu{font-size:11px;padding:4px 9px;border:1px solid var(--line);min-height:29px}#closeEdit{float:right}
+/* The drawing view is a camera over sparse world coordinates, not a giant bitmap. */
+#viewport{display:block!important;overflow:hidden!important;padding:0!important;touch-action:none;background:#c4d7e7}#paper{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;padding:0!important;box-shadow:none!important;background:transparent!important}#canvas{display:block;touch-action:none}#emptyHint{pointer-events:none}.stage-footer{gap:4px;flex-wrap:wrap;min-height:44px;height:auto;padding:4px 6px}.stage-footer #status{flex:1;min-width:70px;font-size:10px}.stage-footer select{max-width:112px;font-size:11px}.stage-footer button{font-size:10px;padding:4px 6px}.stage-footer>div{display:flex}#drawingTools{overflow-y:auto}#drawingTools [data-tool=magic]{font-size:22px}
+.stage{grid-template-rows:38px minmax(0,1fr) auto!important}.stage-footer{position:relative;z-index:2;overflow:hidden}
+#workspace{grid-template-rows:minmax(0,1fr)}#drawingTools{min-height:0;flex:1;overflow-y:auto}

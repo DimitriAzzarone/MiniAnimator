@@ -15,5 +15,6 @@ function floodFill(data,width,height,x,y,rgba,tolerance=18){
  }
  return true;
 }
-return{floodFill};
+function connectedMask(data,width,height,x,y){x=Math.floor(x);y=Math.floor(y);if(x<0||y<0||x>=width||y>=height||!data[(y*width+x)*4+3])return null;const mask=new Uint8Array(width*height),queue=new Int32Array(width*height);let head=0,tail=0,minX=x,maxX=x,minY=y,maxY=y;queue[tail++]=y*width+x;mask[y*width+x]=1;while(head<tail){const i=queue[head++],cx=i%width,cy=Math.floor(i/width);minX=Math.min(minX,cx);maxX=Math.max(maxX,cx);minY=Math.min(minY,cy);maxY=Math.max(maxY,cy);for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const nx=cx+dx,ny=cy+dy;if(nx<0||ny<0||nx>=width||ny>=height)continue;const n=ny*width+nx;if(!mask[n]&&data[n*4+3]){mask[n]=1;queue[tail++]=n;}}}return{mask,count:tail,x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1};}
+return{floodFill,connectedMask};
 });
